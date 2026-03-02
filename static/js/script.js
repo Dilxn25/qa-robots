@@ -30,6 +30,7 @@ function setTab(tab) {
     const labelB = document.getElementById('labelB');
     const btnCopy = document.getElementById('btnCopy');
 
+    // ESTADO BASE (Todo visible)
     boxB.style.display = 'flex';
     qaPanel.style.display = 'none';
     compPanel.style.display = 'none';
@@ -44,9 +45,10 @@ function setTab(tab) {
     else if (tab === 'results_comp') {
         labelA.innerText = "Input A (Crawler / Datos Anteriores)";
         labelB.innerText = "Input B (Updater / Datos Nuevos)";
-        boxB.style.display = 'none';
+        // AQUÍ ESTABA EL ERROR: Ahora Input B SÍ se muestra junto con los ajustes
+        boxB.style.display = 'flex'; 
         compPanel.style.display = 'block';
-        inputContainer.style.gridTemplateColumns = '1.5fr 1fr';
+        inputContainer.style.gridTemplateColumns = '1fr 1fr 300px'; // 3 Columnas para que quepa todo
     } 
     else if (tab === 'dupes') {
         labelA.innerText = "Input A (JSON a buscar duplicados)";
@@ -75,7 +77,7 @@ function autoDetectFields() {
         if(!rawA) return;
         
         let data;
-        try { data = JSON.parse(rawA); } catch(e) { return; } // Si es código JS, ignorar auto-detección
+        try { data = JSON.parse(rawA); } catch(e) { return; } 
         
         const item = Array.isArray(data) ? data[0] : data;
         const keys = Object.keys(item);
@@ -121,24 +123,20 @@ function process() {
         return;
     }
 
-    // ==========================================
-    // MAGIA PARA CÓDIGO JS CRUDO (pageFunction)
-    // ==========================================
+    // MAGIA PARA CÓDIGO JS CRUDO
     if (currentTab === 'codes') {
         try {
-            // Intenta parsear como JSON primero
             const dataA = JSON.parse(rawA);
             const dataB = JSON.parse(rawB);
             compareCodesJSON(dataA, dataB);
         } catch(e) {
-            // Si falla, es porque pegaste código puro JS o texto. Se pasa al comparador de líneas.
+            // Falla parseo? Entonces es código JS y comparamos líneas
             compareCodesText(rawA, rawB);
         }
         document.getElementById('btnCopy').style.display = 'block';
         return;
     }
 
-    // El resto de pestañas exigen JSON
     try {
         const dataA = JSON.parse(rawA);
 
@@ -155,7 +153,7 @@ function process() {
 }
 
 // ----------------------------------------------------
-// COMPARADOR 1A: JSON PROFUNDO
+// COMPARADOR 1A: JSON PROFUNDO (CON FORMATO BONITO ARREGLADO)
 // ----------------------------------------------------
 function compareCodesJSON(a, b) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
@@ -177,11 +175,11 @@ function compareCodesJSON(a, b) {
             if (typeof v1 === 'object' && v1 !== null && typeof v2 === 'object' && v2 !== null) {
                 diffHtml += deepCompare(v1, v2, currentPath);
             } else if (v1 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><span class="new">[+] NUEVO: ${JSON.stringify(v2)}</span></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="new" style="white-space:pre-wrap;">[+] NUEVO:\n${JSON.stringify(v2, null, 2)}</div></li>`;
             } else if (v2 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><span class="old">[-] ELIMINADO: ${JSON.stringify(v1)}</span></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="old" style="white-space:pre-wrap;">[-] ELIMINADO:\n${JSON.stringify(v1, null, 2)}</div></li>`;
             } else {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><span class="old">${JSON.stringify(v1)}</span> ➡ <span class="new">${JSON.stringify(v2)}</span></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="old" style="white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div class="new" style="white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
             }
         });
         return diffHtml;
@@ -192,7 +190,7 @@ function compareCodesJSON(a, b) {
 }
 
 // ----------------------------------------------------
-// COMPARADOR 1B: TEXTO/CÓDIGO LÍNEA A LÍNEA (pageFunction)
+// COMPARADOR 1B: TEXTO/CÓDIGO LÍNEA A LÍNEA (JS CRUDO)
 // ----------------------------------------------------
 function compareCodesText(rawA, rawB) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
@@ -209,8 +207,8 @@ function compareCodesText(rawA, rawB) {
             diffs++;
             html += `<li class="diff-item" style="font-family:monospace; font-size:12px;">
                 <b style="color:var(--warn)">Línea ${i + 1}:</b> <br>
-                ${lA !== null ? `<span class="old" style="white-space:pre-wrap;">[-] ${lA || '(Línea vacía)'}</span><br>` : ''}
-                ${lB !== null ? `<span class="new" style="white-space:pre-wrap;">[+] ${lB || '(Línea vacía)'}</span>` : ''}
+                ${lA !== null ? `<div class="old" style="white-space:pre-wrap; word-break:break-all;">[-] ${lA || '(Línea vacía)'}</div>` : ''}
+                ${lB !== null ? `<div class="new" style="white-space:pre-wrap; word-break:break-all;">[+] ${lB || '(Línea vacía)'}</div>` : ''}
             </li>`;
         }
     }
@@ -220,7 +218,7 @@ function compareCodesText(rawA, rawB) {
 }
 
 // ----------------------------------------------------
-// COMPARADOR DE RESULTADOS (CON FILTROS Y MODO UPDATER)
+// COMPARADOR DE RESULTADOS
 // ----------------------------------------------------
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
@@ -255,14 +253,12 @@ function compareResults(listA, listB) {
             html += `<div class="err">❌ [FALTANTE] El ID ${rawId} está en Crawler pero NO en la Comparación.</div>`;
             checkedFields.forEach(k => failsObj[k]++);
         } else {
-            // SOLO EVALUAR LOS CAMPOS QUE EL USUARIO MARCÓ EN LOS CHECKBOXES
             checkedFields.forEach(key => {
                 let valA = itemA[key];
                 let valB = itemB[key];
 
-                // Si es modo Updater, ignoramos la comparación si el Updater no trajo este campo (para evitar ruido)
                 if (compMode === 'updater' && valB === undefined) {
-                    return; // Ignorar campo faltante intencionalmente
+                    return; 
                 }
                 
                 let sA = typeof valA === 'object' && valA !== null ? JSON.stringify(valA) : String(valA || "").trim();
@@ -278,7 +274,6 @@ function compareResults(listA, listB) {
         }
     });
 
-    // Remover campos con valor 0 del summary si es modo updater
     if (compMode === 'updater') {
         Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
     }
