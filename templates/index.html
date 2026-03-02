@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>QA ROBOTS WORKSTATION</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo">QA<span>ROBOTS</span></div>
+            <nav>
+                <button class="nav-btn active" onclick="setTab('codes')">Comparar Códigos (JSON/JS)</button>
+                <button class="nav-btn" onclick="setTab('results_comp')">Comparar Resultados</button>
+                <button class="nav-btn" onclick="setTab('dupes')">Validador Duplicados</button>
+                <button class="nav-btn" onclick="setTab('qa')">Validador QA</button>
+                <button class="nav-btn" onclick="setTab('extra')">Extractor StartUrls</button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-secondary" onclick="clearAll()">Limpiar Todo</button>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="input-area" id="inputContainer">
+                
+                <div class="input-box" id="boxA">
+                    <header class="box-header" id="labelA">Input A</header>
+                    <textarea id="jsonA" spellcheck="false" placeholder="Pega el código o JSON aquí..." oninput="autoDetectFields()"></textarea>
+                </div>
+                
+                <div class="input-box" id="boxB">
+                    <header class="box-header" id="labelB">Input B</header>
+                    <textarea id="jsonB" spellcheck="false" placeholder="Pega el código o JSON aquí..."></textarea>
+                </div>
+
+                <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d; overflow-y: auto;">
+                    <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Parámetros del Validador QA</header>
+                    <div class="form-group">
+                        <label>Tipo de Robot</label>
+                        <select id="qaRobotType" class="form-control">
+                            <option value="Crawler">Crawler (Exige Códigos, Sin Ratings)</option>
+                            <option value="Updater">Updater (Actualiza Precios/Ratings)</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Fabricante Esperado</label><input type="text" id="qaManufacturer" class="form-control" placeholder="Ej: Philips|Samsung"></div>
+                    <div class="form-group"><label>Base URL Esperada</label><input type="text" id="qaUrl" class="form-control" placeholder="Ej: https://www.casasbahia.com.br/"></div>
+                    <div class="form-group"><label>Base Imagen Esperada</label><input type="text" id="qaImage" class="form-control" placeholder="Ej: https://imgs.casasbahia.com.br/"></div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Verificar Duplicados Internos en:</label>
+                        <div id="qaDynamicDupes" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
+                    </div>
+                </div>
+
+                <div class="input-box" id="compConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d; overflow-y: auto;">
+                    <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Ajustes de Comparación</header>
+                    <div class="form-group">
+                        <label>Modo de Comparación</label>
+                        <select id="compMode" class="form-control">
+                            <option value="strict">Crawler vs Crawler (Estricto)</option>
+                            <option value="updater">Crawler vs Updater (Ignora campos ausentes en Updater)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Comparar solo estos campos:</label>
+                        <div id="compDynamicFields" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="toolbar">
+                <div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:5px; margin-right:15px; align-items:center;"></div>
+                <button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS</button>
+            </div>
+
+            <div class="output-panel">
+                <header class="box-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Consola de Resultados</span>
+                    <button id="btnCopy" class="btn-chip" style="background: var(--accent); color: #000; font-weight: bold; display: none;" onclick="copyOutput()">📋 Copiar Todo</button>
+                </header>
+                <div id="output" class="console">Esperando ejecución...</div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
