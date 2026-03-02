@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QA ROBOTS WORKSTATION</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -34,7 +35,7 @@
                     <textarea id="jsonB" spellcheck="false" placeholder="Pega el código o JSON aquí..."></textarea>
                 </div>
 
-                <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d; overflow-y: auto;">
+                <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Parámetros del Validador QA</header>
                     <div class="form-group">
                         <label>Tipo de Robot</label>
@@ -52,7 +53,7 @@
                     </div>
                 </div>
 
-                <div class="input-box" id="compConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d; overflow-y: auto;">
+                <div class="input-box" id="compConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Ajustes de Comparación</header>
                     <div class="form-group">
                         <label>Modo de Comparación</label>
