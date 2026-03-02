@@ -2,6 +2,19 @@ let currentTab = 'codes';
 let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
 
+// ==========================================
+// MENÚ MÓVIL (Toggle)
+// ==========================================
+function toggleSidebar() {
+    const sidebar = document.getElementById('mainSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+}
+
+// ==========================================
+// FUNCIÓN PARA COPIAR RESULTADOS
+// ==========================================
 function copyOutput() {
     const outputElement = document.getElementById('output');
     const preBlock = outputElement.querySelector('pre');
@@ -16,10 +29,17 @@ function copyOutput() {
     });
 }
 
+// ==========================================
+// CONTROL DE PESTAÑAS
+// ==========================================
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (event && event.target) event.target.classList.add('active');
+
+    // Cerrar el sidebar si estamos en móvil
+    document.getElementById('mainSidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
 
     const boxA = document.getElementById('boxA');
     const boxB = document.getElementById('boxB');
@@ -29,7 +49,6 @@ function setTab(tab) {
     const labelB = document.getElementById('labelB');
     const btnCopy = document.getElementById('btnCopy');
 
-    // ESTADO BASE: Ocultamos paneles extra. El CSS Grid auto-fit acomodará lo que quede visible.
     boxB.style.display = 'flex';
     qaPanel.style.display = 'none';
     compPanel.style.display = 'none';
@@ -43,11 +62,11 @@ function setTab(tab) {
     else if (tab === 'results_comp') {
         labelA.innerText = "Input A (Crawler / Datos Anteriores)";
         labelB.innerText = "Input B (Updater / Datos Nuevos)";
-        compPanel.style.display = 'flex'; // Activamos el 3er panel
+        compPanel.style.display = 'flex';
     } 
     else if (tab === 'dupes') {
         labelA.innerText = "Input A (JSON a buscar duplicados)";
-        boxB.style.display = 'none'; // Desactivamos Input B, Input A ocupará el centro
+        boxB.style.display = 'none';
     } 
     else if (tab === 'qa') {
         labelA.innerText = "Input A (Productos a Validar)";
@@ -138,6 +157,9 @@ function process() {
     }
 }
 
+// ----------------------------------------------------
+// COMPARADORES DE CÓDIGO
+// ----------------------------------------------------
 function compareCodesJSON(a, b) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
     function deepCompare(obj1, obj2, path = "") {
@@ -194,6 +216,9 @@ function compareCodesText(rawA, rawB) {
     document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
+// ----------------------------------------------------
+// COMPARADOR DE RESULTADOS
+// ----------------------------------------------------
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
     const arrB = Array.isArray(listB) ? listB : [listB];
@@ -246,22 +271,46 @@ function compareResults(listA, listB) {
     document.getElementById('output').innerHTML = summaryHtml + (html || "<h3 style='color:var(--success)'>✅ Todos los campos evaluados coinciden exactamente.</h3>");
 }
 
+// ----------------------------------------------------
+// ENCONTRAR DUPLICADOS (NUEVA TARJETA AGRUPADA)
+// ----------------------------------------------------
 function findDuplicates(data) {
     const arr = Array.isArray(data) ? data : [data];
     const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
     let html = '';
-    arr.forEach(i => {
+    let hasDupes = false;
+
+    arr.forEach((i, idx) => {
+        let itemErrors = [];
+        const displayId = i.ProductId || `Posición JSON: ${idx}`;
+
         ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
             if (i[f]) {
                 const valStr = String(i[f]).trim();
-                if (seen[f].has(valStr)) html += `<div class="err">❌ ${f} REPETIDO: <b>${valStr}</b></div>`;
+                if (seen[f].has(valStr)) {
+                    itemErrors.push(`❌ <b>${f}</b> REPETIDO: <br><span style="color:#c9d1d9; font-size:12px;">${valStr}</span>`);
+                }
                 seen[f].add(valStr);
             }
         });
+
+        if (itemErrors.length > 0) {
+            hasDupes = true;
+            html += `<div class="dupe-card">
+                        <h4>🏷️ ID Referencia: <span style="color:var(--accent)">${displayId}</span></h4>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${itemErrors.join('')}
+                        </div>
+                     </div>`;
+        }
     });
-    document.getElementById('output').innerHTML = html || "<h3 style='color:var(--success)'>✅ No hay duplicados.</h3>";
+
+    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>✅ El JSON está limpio, no hay duplicados.</h3>";
 }
 
+// ----------------------------------------------------
+// VALIDADOR QA
+// ----------------------------------------------------
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
     let htmlDetails = '';
@@ -269,6 +318,8 @@ function runDynamicQA(data) {
     const expManu = document.getElementById('qaManufacturer').value.trim();
     const expUrl = document.getElementById('qaUrl').value.trim();
     const expImg = document.getElementById('qaImage').value.trim();
+    
+    // Solo toma los checkboxes activos para duplicados
     const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked'));
     const fieldsToDupCheck = dupCheckboxes.map(cb => cb.value);
 
@@ -295,8 +346,13 @@ function runDynamicQA(data) {
                 if (expRobot === 'Crawler' && totalC === 0) itemErrors.push(`[Codes] Crawler sin códigos.`);
             } 
             else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
-            else if (NUMBER_FIELDS.includes(key)) { if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; } } 
-            else { if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; } }
+            else if (NUMBER_FIELDS.includes(key)) { 
+                // AQUÍ: Siempre valida formato número, sin importar si el checkbox está marcado o no.
+                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; } 
+            } else { 
+                // AQUÍ: Siempre valida formato texto para el resto.
+                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; } 
+            }
 
             if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Fabricante] Esperado: ${expManu}`); fieldFailed = true; }
             if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[URL] Base incorrecta.`); fieldFailed = true; }
@@ -307,10 +363,14 @@ function runDynamicQA(data) {
                 if (/\s\s+/.test(val)) { itemErrors.push(`[Nombre] Espacios dobles.`); fieldWarn = true; }
                 if (/&amp|&#xE9|&#xE2|&#xEE|&#xE0|&#x2019|&#xB0/.test(val)) { itemErrors.push(`[Nombre] Entidades HTML.`); fieldWarn = true; }
             }
+
             if (fieldsToDupCheck.includes(key) && val) {
                 const valStr = String(val).trim();
-                if (seenForDupes[key].has(valStr)) { itemErrors.push(`[${key}] Duplicado interno: ${valStr}`); stats.Fields[key].Duplicates++; fieldFailed = true; } 
-                else seenForDupes[key].add(valStr);
+                if (seenForDupes[key].has(valStr)) {
+                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`);
+                    stats.Fields[key].Duplicates++;
+                    fieldFailed = true;
+                } else seenForDupes[key].add(valStr);
             }
 
             if (stats.Fields[key]) {
