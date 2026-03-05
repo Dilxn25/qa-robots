@@ -2,9 +2,6 @@ let currentTab = 'codes';
 let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
 
-// ==========================================
-// MENÚ MÓVIL (Toggle)
-// ==========================================
 function toggleSidebar() {
     const sidebar = document.getElementById('mainSidebar');
     const overlay = document.getElementById('sidebarOverlay');
@@ -12,9 +9,6 @@ function toggleSidebar() {
     overlay.classList.toggle('open');
 }
 
-// ==========================================
-// FUNCIÓN PARA COPIAR RESULTADOS
-// ==========================================
 function copyOutput() {
     const outputElement = document.getElementById('output');
     const preBlock = outputElement.querySelector('pre');
@@ -29,15 +23,11 @@ function copyOutput() {
     });
 }
 
-// ==========================================
-// CONTROL DE PESTAÑAS
-// ==========================================
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (event && event.target) event.target.classList.add('active');
 
-    // Cerrar el sidebar si estamos en móvil
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
@@ -45,6 +35,7 @@ function setTab(tab) {
     const boxB = document.getElementById('boxB');
     const qaPanel = document.getElementById('qaConfigPanel');
     const compPanel = document.getElementById('compConfigPanel');
+    const extraPanel = document.getElementById('extraConfigPanel');
     const labelA = document.getElementById('labelA');
     const labelB = document.getElementById('labelB');
     const btnCopy = document.getElementById('btnCopy');
@@ -52,7 +43,8 @@ function setTab(tab) {
     boxB.style.display = 'flex';
     qaPanel.style.display = 'none';
     compPanel.style.display = 'none';
-    document.getElementById('dynamicTools').style.display = 'none';
+    extraPanel.style.display = 'none';
+    document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     btnCopy.style.display = 'none';
 
     if (tab === 'codes') {
@@ -63,6 +55,7 @@ function setTab(tab) {
         labelA.innerText = "Input A (Crawler / Datos Anteriores)";
         labelB.innerText = "Input B (Updater / Datos Nuevos)";
         compPanel.style.display = 'flex';
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
     } 
     else if (tab === 'dupes') {
         labelA.innerText = "Input A (JSON a buscar duplicados)";
@@ -72,11 +65,13 @@ function setTab(tab) {
         labelA.innerText = "Input A (Productos a Validar)";
         boxB.style.display = 'none';
         qaPanel.style.display = 'flex';
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     } 
     else if (tab === 'extra') {
         labelA.innerText = "Input A (JSON para Extraer URLs)";
         boxB.style.display = 'none';
-        document.getElementById('dynamicTools').style.display = 'flex';
+        extraPanel.style.display = 'flex';
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
 
     autoDetectFields();
@@ -90,8 +85,10 @@ function autoDetectFields() {
         let data;
         try { data = JSON.parse(rawA); } catch(e) { return; } 
         
-        const item = Array.isArray(data) ? data[0] : data;
-        const keys = Object.keys(item);
+        // Buscar un objeto válido para sacar las keys (ignorar Handled si es posible)
+        const arr = Array.isArray(data) ? data : [data];
+        let item = arr.find(i => i.Handled !== true && i.handled !== true) || arr[0];
+        const keys = Object.keys(item).filter(k => k !== 'Handled' && k !== 'handled' && k !== 'Message');
 
         if (currentTab === 'qa') {
             const container = document.getElementById('qaDynamicDupes');
@@ -109,7 +106,7 @@ function autoDetectFields() {
 
         if (currentTab === 'extra') {
             const tools = document.getElementById('dynamicTools');
-            tools.innerHTML = '<span style="color:#8b949e; font-size:12px; margin-right:10px;">Incluir en UserData:</span>';
+            tools.innerHTML = '';
             keys.forEach(k => {
                 const btn = document.createElement('button');
                 btn.innerText = k;
@@ -271,9 +268,6 @@ function compareResults(listA, listB) {
     document.getElementById('output').innerHTML = summaryHtml + (html || "<h3 style='color:var(--success)'>✅ Todos los campos evaluados coinciden exactamente.</h3>");
 }
 
-// ----------------------------------------------------
-// ENCONTRAR DUPLICADOS (NUEVA TARJETA AGRUPADA)
-// ----------------------------------------------------
 function findDuplicates(data) {
     const arr = Array.isArray(data) ? data : [data];
     const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
@@ -281,6 +275,9 @@ function findDuplicates(data) {
     let hasDupes = false;
 
     arr.forEach((i, idx) => {
+        // Ignorar items Handled en búsqueda de duplicados para no ensuciar
+        if (i.Handled === true || i.handled === true) return;
+
         let itemErrors = [];
         const displayId = i.ProductId || `Posición JSON: ${idx}`;
 
@@ -298,9 +295,7 @@ function findDuplicates(data) {
             hasDupes = true;
             html += `<div class="dupe-card">
                         <h4>🏷️ ID Referencia: <span style="color:var(--accent)">${displayId}</span></h4>
-                        <div style="display:flex; flex-direction:column; gap:8px;">
-                            ${itemErrors.join('')}
-                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">${itemErrors.join('')}</div>
                      </div>`;
         }
     });
@@ -309,7 +304,7 @@ function findDuplicates(data) {
 }
 
 // ----------------------------------------------------
-// VALIDADOR QA
+// VALIDADOR QA (FILTRA HANDLED Y CUENTA)
 // ----------------------------------------------------
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
@@ -318,18 +313,31 @@ function runDynamicQA(data) {
     const expManu = document.getElementById('qaManufacturer').value.trim();
     const expUrl = document.getElementById('qaUrl').value.trim();
     const expImg = document.getElementById('qaImage').value.trim();
-    
-    // Solo toma los checkboxes activos para duplicados
     const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked'));
     const fieldsToDupCheck = dupCheckboxes.map(cb => cb.value);
 
+    let handledCount = 0;
+    let validItems = [];
+
+    // Separar válidos de Handled
+    arr.forEach(i => {
+        if (i.Handled === true || i.handled === true) handledCount++;
+        else validItems.push(i);
+    });
+
     let stats = { Fields: {}, Codes: { CTINCode:0, EANCode:0, UPCCode:0, GTINCode:0, A2CCode:0, ASINCode:0, OTHERCode:0 }, Other: {} };
-    if(arr.length > 0) Object.keys(arr[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 }; });
+    
+    if(validItems.length > 0) {
+        Object.keys(validItems[0]).forEach(k => {
+            if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 };
+        });
+    }
 
     let seenForDupes = {};
     fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
 
-    arr.forEach((item, idx) => {
+    // Auditar SOLO los válidos
+    validItems.forEach((item, idx) => {
         let itemErrors = [];
         const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `POS_${idx}`;
 
@@ -347,10 +355,8 @@ function runDynamicQA(data) {
             } 
             else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
             else if (NUMBER_FIELDS.includes(key)) { 
-                // AQUÍ: Siempre valida formato número, sin importar si el checkbox está marcado o no.
                 if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; } 
             } else { 
-                // AQUÍ: Siempre valida formato texto para el resto.
                 if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; } 
             }
 
@@ -382,19 +388,54 @@ function runDynamicQA(data) {
         if (itemErrors.length > 0) htmlDetails += `<div class="qa-item"><b style="color:var(--err)">ID: ${id}</b><ul style="color:var(--err); margin:5px 0;">${itemErrors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
     });
 
-    const summaryObject = { Fields: Object.values(stats.Fields), Codes: stats.Codes, Other: stats.Other };
+    const summaryObject = { 
+        TotalRecibidos: arr.length,
+        HandledIgnorados: handledCount,
+        TotalAnalizados: validItems.length,
+        Fields: Object.values(stats.Fields), 
+        Codes: stats.Codes, 
+        Other: stats.Other 
+    };
     const topHtml = `<pre class="summary-json">INFO  Summary results:\nINFO  ${JSON.stringify(summaryObject, null, 2)}\nINFO  QA Validation Complete</pre>`;
     document.getElementById('output').innerHTML = topHtml + htmlDetails;
 }
 
+// ----------------------------------------------------
+// EXTRACTOR STARTURLS (CON FILTRO HANDLED Y LÍMITE)
+// ----------------------------------------------------
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
-    const result = arr.map(i => {
-        let uData = {};
-        extractionFields.forEach(f => { if(i[f]) uData[f] = i[f]; });
-        return { url: i.ProductUrl || "N/A", userData: uData, method: "GET" };
+    
+    let validItems = [];
+    let handledCount = 0;
+
+    arr.forEach(i => {
+        if (i.Handled === true || i.handled === true) handledCount++;
+        else validItems.push(i);
     });
-    document.getElementById('output').innerHTML = `<pre class="summary-json">${JSON.stringify({startUrls: result}, null, 4)}</pre>`;
+
+    const selectAll = document.getElementById('extAll').checked;
+    const limitInput = parseInt(document.getElementById('extLimit').value);
+    
+    // Si dice Todo o el número no es válido, tomar la longitud de los válidos. Si no, tomar el límite.
+    const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
+    
+    const finalItems = validItems.slice(0, limit);
+
+    const result = finalItems.map(i => {
+        let uData = {};
+        extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
+        // Buscar URL principal
+        const finalUrl = i.ProductUrl || i.Url || i.url || "N/A";
+        return { url: finalUrl, userData: uData, method: "GET" };
+    });
+
+    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        📊 RESULTADOS DE EXTRACCIÓN: <br>
+        <span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span>
+    </div>`;
+
+    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(result, null, 4)}</pre>`;
 }
 
 function clearAll() {
