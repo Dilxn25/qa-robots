@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QA ROBOTS WORKSTATION</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="dark-theme">
@@ -17,6 +18,8 @@
                 <button class="nav-btn" onclick="setTab('dupes')">Validador Duplicados</button>
                 <button class="nav-btn" onclick="setTab('qa')">Validador QA</button>
                 <button class="nav-btn" onclick="setTab('extra')">Extractor StartUrls</button>
+                <div style="border-top: 1px solid var(--border); margin: 10px 0;"></div>
+                <button class="nav-btn" style="color: #00ff87;" onclick="setTab('api')">🚀 API Tester (Postman)</button>
             </nav>
             <div class="sidebar-footer">
                 <button class="btn-secondary" onclick="clearAll()">Limpiar Todo</button>
@@ -26,7 +29,6 @@
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
         <main class="content">
-            
             <div class="mobile-header">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰ Menú</button>
                 <h2 style="margin:0; font-size: 18px; color: var(--accent);">QA ROBOTS</h2>
@@ -47,37 +49,19 @@
                 <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Parámetros del Validador QA</header>
                     <div style="background: rgba(88, 166, 255, 0.1); border-left: 3px solid var(--accent); padding: 10px; margin-bottom: 15px; font-size: 12px; color: #8b949e;">
-                        <b style="color: var(--accent);">Nota:</b> Los formatos (Textos y Números) se validan SIEMPRE para todos los campos. Los objetos con <b style="color:var(--warn)">Handled: true</b> se ignoran automáticamente.
+                        <b style="color: var(--accent);">Nota:</b> Los formatos se validan SIEMPRE para todos los campos. <b style="color:var(--warn)">Handled: true</b> se ignoran.
                     </div>
-                    <div class="form-group">
-                        <label>Tipo de Robot</label>
-                        <select id="qaRobotType" class="form-control">
-                            <option value="Crawler">Crawler (Exige Códigos, Sin Ratings)</option>
-                            <option value="Updater">Updater (Actualiza Precios/Ratings)</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>Tipo de Robot</label><select id="qaRobotType" class="form-control"><option value="Crawler">Crawler (Exige Códigos, Sin Ratings)</option><option value="Updater">Updater (Actualiza Precios/Ratings)</option></select></div>
                     <div class="form-group"><label>Fabricante Esperado</label><input type="text" id="qaManufacturer" class="form-control" placeholder="Ej: Philips|Samsung"></div>
                     <div class="form-group"><label>Base URL Esperada</label><input type="text" id="qaUrl" class="form-control" placeholder="Ej: https://www.casasbahia.com.br/"></div>
                     <div class="form-group"><label>Base Imagen Esperada</label><input type="text" id="qaImage" class="form-control" placeholder="Ej: https://imgs.casasbahia.com.br/"></div>
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label>Verificar Duplicados Internos SOLO en:</label>
-                        <div id="qaDynamicDupes" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
-                    </div>
+                    <div class="form-group" style="margin-top: 15px;"><label>Verificar Duplicados Internos SOLO en:</label><div id="qaDynamicDupes" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div></div>
                 </div>
 
                 <div class="input-box" id="compConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Ajustes de Comparación</header>
-                    <div class="form-group">
-                        <label>Modo de Comparación</label>
-                        <select id="compMode" class="form-control">
-                            <option value="strict">Crawler vs Crawler (Estricto)</option>
-                            <option value="updater">Crawler vs Updater (Ignora campos ausentes en Updater)</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label>Comparar solo estos campos:</label>
-                        <div id="compDynamicFields" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
-                    </div>
+                    <div class="form-group"><label>Modo de Comparación</label><select id="compMode" class="form-control"><option value="strict">Crawler vs Crawler (Estricto)</option><option value="updater">Crawler vs Updater (Ignora campos ausentes en Updater)</option></select></div>
+                    <div class="form-group" style="margin-top: 15px;"><label>Comparar solo estos campos:</label><div id="compDynamicFields" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div></div>
                 </div>
 
                 <div class="input-box" id="extraConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
@@ -85,25 +69,64 @@
                     <div class="form-group">
                         <label>Cantidad a Extraer (Ignorando Handled)</label>
                         <div style="display:flex; gap:15px; align-items:center;">
-                            <label class="check-label">
-                                <input type="checkbox" id="extAll" checked onchange="document.getElementById('extLimit').disabled = this.checked"> Extraer Todo
-                            </label>
+                            <label class="check-label"><input type="checkbox" id="extAll" checked onchange="document.getElementById('extLimit').disabled = this.checked"> Extraer Todo</label>
                             <input type="number" id="extLimit" class="form-control" style="width:120px;" placeholder="Ej: 300" disabled min="1">
                         </div>
                     </div>
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label>Incluir en UserData (Auto-detectado):</label>
-                        <div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div>
+                    <div class="form-group" style="margin-top: 20px;"><label>Incluir en UserData (Auto-detectado):</label><div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div></div>
+                </div>
+
+                <div class="input-box" id="apiTesterPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                        <header class="box-header" style="color: #00ff87; margin:0;">🚀 API Tester</header>
+                        <button class="btn-chip" onclick="importCurlPrompt()">📥 Importar cURL (bash)</button>
+                    </div>
+                    
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 15px;">
+                        <i>Nota: Si la API externa no tiene habilitado CORS, el navegador bloqueará la petición.</i>
+                    </div>
+
+                    <div class="api-url-bar">
+                        <select id="apiMethod" class="form-control" style="width: 120px; font-weight: bold; color: var(--accent);">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                        </select>
+                        <input type="text" id="apiUrl" class="form-control" placeholder="https://api.example.com/v1/data">
+                        <button class="btn-primary" style="background: #00ff87;" onclick="sendApiRequest()">Enviar</button>
+                    </div>
+
+                    <div class="api-tabs">
+                        <button class="api-tab-btn active" onclick="switchApiTab('apiHeaders')">Headers</button>
+                        <button class="api-tab-btn" onclick="switchApiTab('apiBody')">Body (Raw / JSON)</button>
+                    </div>
+
+                    <div id="apiHeaders" class="api-tab-content active">
+                        <textarea id="apiHeadersInput" class="form-control" style="height: 100px; font-family: monospace;" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer TOKEN"}'></textarea>
+                    </div>
+
+                    <div id="apiBody" class="api-tab-content">
+                        <textarea id="apiBodyInput" class="form-control" style="height: 200px; font-family: monospace;" placeholder='{ "key": "value" }'></textarea>
+                    </div>
+
+                    <div class="api-response-area" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="color:#8b949e; font-weight:bold;">Respuesta:</span>
+                            <span id="apiStatus" style="font-family:monospace; font-size:13px; font-weight:bold; color:var(--text);">Esperando petición...</span>
+                        </div>
+                        <textarea id="apiResponseOutput" class="form-control" style="height: 300px; background: #010409; color: #7ee787;" readonly placeholder="El resultado de la API aparecerá aquí..."></textarea>
                     </div>
                 </div>
 
             </div>
 
-            <div class="toolbar">
+            <div class="toolbar" id="mainToolbar">
                 <button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS</button>
             </div>
 
-            <div class="output-panel">
+            <div class="output-panel" id="mainOutputPanel">
                 <header class="box-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>Consola de Resultados</span>
                     <button id="btnCopy" class="btn-chip" style="background: var(--accent); color: #000; font-weight: bold; display: none;" onclick="copyOutput()">📋 Copiar Todo</button>

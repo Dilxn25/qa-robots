@@ -3,17 +3,14 @@ let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
 
 function toggleSidebar() {
-    const sidebar = document.getElementById('mainSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
+    document.getElementById('mainSidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
 }
 
 function copyOutput() {
     const outputElement = document.getElementById('output');
     const preBlock = outputElement.querySelector('pre');
     const textToCopy = preBlock ? preBlock.innerText : outputElement.innerText;
-
     navigator.clipboard.writeText(textToCopy).then(() => {
         const btn = document.getElementById('btnCopy');
         const originalText = btn.innerHTML;
@@ -36,16 +33,23 @@ function setTab(tab) {
     const qaPanel = document.getElementById('qaConfigPanel');
     const compPanel = document.getElementById('compConfigPanel');
     const extraPanel = document.getElementById('extraConfigPanel');
+    const apiPanel = document.getElementById('apiTesterPanel');
+    const mainToolbar = document.getElementById('mainToolbar');
+    const mainOutput = document.getElementById('mainOutputPanel');
     const labelA = document.getElementById('labelA');
     const labelB = document.getElementById('labelB');
-    const btnCopy = document.getElementById('btnCopy');
 
+    // Reset layout
+    boxA.style.display = 'flex';
     boxB.style.display = 'flex';
     qaPanel.style.display = 'none';
     compPanel.style.display = 'none';
     extraPanel.style.display = 'none';
+    apiPanel.style.display = 'none';
+    mainToolbar.style.display = 'flex';
+    mainOutput.style.display = 'flex';
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
-    btnCopy.style.display = 'none';
+    document.getElementById('btnCopy').style.display = 'none';
 
     if (tab === 'codes') {
         labelA.innerText = "Input A (Config/Código JS Antiguo)";
@@ -60,6 +64,7 @@ function setTab(tab) {
     else if (tab === 'dupes') {
         labelA.innerText = "Input A (JSON a buscar duplicados)";
         boxB.style.display = 'none';
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr';
     } 
     else if (tab === 'qa') {
         labelA.innerText = "Input A (Productos a Validar)";
@@ -73,37 +78,38 @@ function setTab(tab) {
         extraPanel.style.display = 'flex';
         document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
+    else if (tab === 'api') {
+        boxA.style.display = 'none';
+        boxB.style.display = 'none';
+        mainToolbar.style.display = 'none';
+        mainOutput.style.display = 'none';
+        apiPanel.style.display = 'block';
+    }
 
     autoDetectFields();
 }
 
 function autoDetectFields() {
+    if(currentTab === 'api') return;
     try {
         const rawA = document.getElementById('jsonA').value.trim();
         if(!rawA) return;
+        let data; try { data = JSON.parse(rawA); } catch(e) { return; } 
         
-        let data;
-        try { data = JSON.parse(rawA); } catch(e) { return; } 
-        
-        // Buscar un objeto válido para sacar las keys (ignorar Handled si es posible)
         const arr = Array.isArray(data) ? data : [data];
         let item = arr.find(i => i.Handled !== true && i.handled !== true) || arr[0];
         const keys = Object.keys(item).filter(k => k !== 'Handled' && k !== 'handled' && k !== 'Message');
 
         if (currentTab === 'qa') {
-            const container = document.getElementById('qaDynamicDupes');
-            container.innerHTML = keys.map(k => `
+            document.getElementById('qaDynamicDupes').innerHTML = keys.map(k => `
                 <label class="check-label"><input type="checkbox" value="${k}" ${['ProductId', 'ProductName', 'ProductUrl'].includes(k) ? 'checked' : ''}> ${k}</label>
             `).join('');
         }
-        
         if (currentTab === 'results_comp') {
-            const container = document.getElementById('compDynamicFields');
-            container.innerHTML = keys.map(k => `
+            document.getElementById('compDynamicFields').innerHTML = keys.map(k => `
                 <label class="check-label"><input type="checkbox" value="${k}" checked> ${k}</label>
             `).join('');
         }
-
         if (currentTab === 'extra') {
             const tools = document.getElementById('dynamicTools');
             tools.innerHTML = '';
@@ -130,9 +136,7 @@ function process() {
 
     if (currentTab === 'codes') {
         try {
-            const dataA = JSON.parse(rawA);
-            const dataB = JSON.parse(rawB);
-            compareCodesJSON(dataA, dataB);
+            compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB));
         } catch(e) {
             compareCodesText(rawA, rawB);
         }
@@ -154,9 +158,10 @@ function process() {
     }
 }
 
-// ----------------------------------------------------
-// COMPARADORES DE CÓDIGO
-// ----------------------------------------------------
+// ====================================================
+// ================= QA Y COMPARADORES ================
+// ====================================================
+
 function compareCodesJSON(a, b) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
     function deepCompare(obj1, obj2, path = "") {
@@ -191,8 +196,7 @@ function compareCodesJSON(a, b) {
 
 function compareCodesText(rawA, rawB) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
-    const linesA = rawA.split('\n');
-    const linesB = rawB.split('\n');
+    const linesA = rawA.split('\n'); const linesB = rawB.split('\n');
     const max = Math.max(linesA.length, linesB.length);
     let diffs = 0;
 
@@ -213,9 +217,6 @@ function compareCodesText(rawA, rawB) {
     document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
-// ----------------------------------------------------
-// COMPARADOR DE RESULTADOS
-// ----------------------------------------------------
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
     const arrB = Array.isArray(listB) ? listB : [listB];
@@ -259,9 +260,7 @@ function compareResults(listA, listB) {
         }
     });
 
-    if (compMode === 'updater') {
-        Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
-    }
+    if (compMode === 'updater') Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
 
     const summaryJSON = { Failures: failsObj, Passes: passesObj };
     const summaryHtml = `<pre class="summary-json">INFO  Comparación Crawler vs ${compMode === 'updater' ? 'Updater' : 'Crawler'}:\nINFO  ${JSON.stringify(summaryJSON, null, 2)}</pre>`;
@@ -271,41 +270,29 @@ function compareResults(listA, listB) {
 function findDuplicates(data) {
     const arr = Array.isArray(data) ? data : [data];
     const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
-    let html = '';
-    let hasDupes = false;
+    let html = ''; let hasDupes = false;
 
     arr.forEach((i, idx) => {
-        // Ignorar items Handled en búsqueda de duplicados para no ensuciar
         if (i.Handled === true || i.handled === true) return;
-
         let itemErrors = [];
         const displayId = i.ProductId || `Posición JSON: ${idx}`;
 
         ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
             if (i[f]) {
                 const valStr = String(i[f]).trim();
-                if (seen[f].has(valStr)) {
-                    itemErrors.push(`❌ <b>${f}</b> REPETIDO: <br><span style="color:#c9d1d9; font-size:12px;">${valStr}</span>`);
-                }
+                if (seen[f].has(valStr)) itemErrors.push(`❌ <b>${f}</b> REPETIDO: <br><span style="color:#c9d1d9; font-size:12px;">${valStr}</span>`);
                 seen[f].add(valStr);
             }
         });
 
         if (itemErrors.length > 0) {
             hasDupes = true;
-            html += `<div class="dupe-card">
-                        <h4>🏷️ ID Referencia: <span style="color:var(--accent)">${displayId}</span></h4>
-                        <div style="display:flex; flex-direction:column; gap:8px;">${itemErrors.join('')}</div>
-                     </div>`;
+            html += `<div class="dupe-card"><h4>🏷️ ID Referencia: <span style="color:var(--accent)">${displayId}</span></h4><div style="display:flex; flex-direction:column; gap:8px;">${itemErrors.join('')}</div></div>`;
         }
     });
-
     document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>✅ El JSON está limpio, no hay duplicados.</h3>";
 }
 
-// ----------------------------------------------------
-// VALIDADOR QA (FILTRA HANDLED Y CUENTA)
-// ----------------------------------------------------
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
     let htmlDetails = '';
@@ -316,27 +303,15 @@ function runDynamicQA(data) {
     const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked'));
     const fieldsToDupCheck = dupCheckboxes.map(cb => cb.value);
 
-    let handledCount = 0;
-    let validItems = [];
-
-    // Separar válidos de Handled
-    arr.forEach(i => {
-        if (i.Handled === true || i.handled === true) handledCount++;
-        else validItems.push(i);
-    });
+    let handledCount = 0; let validItems = [];
+    arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
 
     let stats = { Fields: {}, Codes: { CTINCode:0, EANCode:0, UPCCode:0, GTINCode:0, A2CCode:0, ASINCode:0, OTHERCode:0 }, Other: {} };
-    
-    if(validItems.length > 0) {
-        Object.keys(validItems[0]).forEach(k => {
-            if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 };
-        });
-    }
+    if(validItems.length > 0) Object.keys(validItems[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 }; });
 
     let seenForDupes = {};
     fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
 
-    // Auditar SOLO los válidos
     validItems.forEach((item, idx) => {
         let itemErrors = [];
         const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `POS_${idx}`;
@@ -374,8 +349,7 @@ function runDynamicQA(data) {
                 const valStr = String(val).trim();
                 if (seenForDupes[key].has(valStr)) {
                     itemErrors.push(`[${key}] Duplicado interno: ${valStr}`);
-                    stats.Fields[key].Duplicates++;
-                    fieldFailed = true;
+                    stats.Fields[key].Duplicates++; fieldFailed = true;
                 } else seenForDupes[key].add(valStr);
             }
 
@@ -388,54 +362,123 @@ function runDynamicQA(data) {
         if (itemErrors.length > 0) htmlDetails += `<div class="qa-item"><b style="color:var(--err)">ID: ${id}</b><ul style="color:var(--err); margin:5px 0;">${itemErrors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
     });
 
-    const summaryObject = { 
-        TotalRecibidos: arr.length,
-        HandledIgnorados: handledCount,
-        TotalAnalizados: validItems.length,
-        Fields: Object.values(stats.Fields), 
-        Codes: stats.Codes, 
-        Other: stats.Other 
-    };
+    const summaryObject = { TotalRecibidos: arr.length, HandledIgnorados: handledCount, TotalAnalizados: validItems.length, Fields: Object.values(stats.Fields), Codes: stats.Codes, Other: stats.Other };
     const topHtml = `<pre class="summary-json">INFO  Summary results:\nINFO  ${JSON.stringify(summaryObject, null, 2)}\nINFO  QA Validation Complete</pre>`;
     document.getElementById('output').innerHTML = topHtml + htmlDetails;
 }
 
-// ----------------------------------------------------
-// EXTRACTOR STARTURLS (CON FILTRO HANDLED Y LÍMITE)
-// ----------------------------------------------------
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
-    
-    let validItems = [];
-    let handledCount = 0;
+    let validItems = []; let handledCount = 0;
 
-    arr.forEach(i => {
-        if (i.Handled === true || i.handled === true) handledCount++;
-        else validItems.push(i);
-    });
+    arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
 
     const selectAll = document.getElementById('extAll').checked;
     const limitInput = parseInt(document.getElementById('extLimit').value);
-    
-    // Si dice Todo o el número no es válido, tomar la longitud de los válidos. Si no, tomar el límite.
     const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
-    
     const finalItems = validItems.slice(0, limit);
 
     const result = finalItems.map(i => {
         let uData = {};
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
-        // Buscar URL principal
         const finalUrl = i.ProductUrl || i.Url || i.url || "N/A";
         return { url: finalUrl, userData: uData, method: "GET" };
     });
 
-    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        📊 RESULTADOS DE EXTRACCIÓN: <br>
-        <span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span>
-    </div>`;
-
+    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">📊 RESULTADOS DE EXTRACCIÓN: <br><span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span></div>`;
     document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(result, null, 4)}</pre>`;
+}
+
+// ====================================================
+// ================= API TESTER LOGIC =================
+// ====================================================
+
+function switchApiTab(tabId) {
+    document.querySelectorAll('.api-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.api-tab-content').forEach(content => content.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
+
+function importCurlPrompt() {
+    const curl = prompt("Pega tu comando cURL (Copiar como bash):");
+    if (!curl) return;
+
+    try {
+        // Parsear URL
+        const urlMatch = curl.match(/curl\s+(?:-X\s+[A-Z]+\s+)?['"]?([^'"\s]+)['"]?/);
+        if (urlMatch) document.getElementById('apiUrl').value = urlMatch[1];
+
+        // Parsear Método
+        const methodMatch = curl.match(/-X\s+([A-Z]+)/);
+        if (methodMatch) document.getElementById('apiMethod').value = methodMatch[1];
+        else document.getElementById('apiMethod').value = 'GET';
+
+        // Parsear Headers
+        const headerMatches = [...curl.matchAll(/-H\s+['"]([^'"]+)['"]/g)];
+        let headersObj = {};
+        headerMatches.forEach(m => {
+            const parts = m[1].split(':');
+            if (parts.length >= 2) headersObj[parts[0].trim()] = parts.slice(1).join(':').trim();
+        });
+        if (Object.keys(headersObj).length > 0) {
+            document.getElementById('apiHeadersInput').value = JSON.stringify(headersObj, null, 2);
+        }
+
+        // Parsear Data
+        const dataMatch = curl.match(/--data(?:-raw)?\s+['"]([^'"]+)['"]/);
+        if (dataMatch) {
+            document.getElementById('apiBodyInput').value = dataMatch[1];
+            if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; // asume POST si hay body
+        }
+        
+    } catch(e) {
+        alert("Error procesando cURL: " + e.message);
+    }
+}
+
+async function sendApiRequest() {
+    const url = document.getElementById('apiUrl').value.trim();
+    const method = document.getElementById('apiMethod').value;
+    const rawHeaders = document.getElementById('apiHeadersInput').value.trim();
+    const rawBody = document.getElementById('apiBodyInput').value.trim();
+    const responseOut = document.getElementById('apiResponseOutput');
+    const statusOut = document.getElementById('apiStatus');
+
+    if (!url) { alert("Ingresa una URL válida"); return; }
+
+    let headers = {};
+    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } 
+    catch(e) { alert("Formato de Headers inválido. Debe ser JSON."); return; }
+
+    const options = { method, headers };
+    if (method !== 'GET' && method !== 'HEAD' && rawBody) options.body = rawBody;
+
+    statusOut.innerText = "Enviando...";
+    statusOut.style.color = "var(--warn)";
+    responseOut.value = "Cargando...";
+
+    const startTime = performance.now();
+
+    try {
+        const response = await fetch(url, options);
+        const time = Math.round(performance.now() - startTime);
+        
+        let color = response.ok ? "var(--success)" : "var(--err)";
+        statusOut.innerHTML = `<span style="color:${color}">${response.status} ${response.statusText}</span> <span style="margin-left:10px; color:#8b949e;">⏱️ ${time}ms</span>`;
+
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            const json = await response.json();
+            responseOut.value = JSON.stringify(json, null, 4);
+        } else {
+            const text = await response.text();
+            responseOut.value = text;
+        }
+    } catch (e) {
+        statusOut.innerHTML = `<span style="color:var(--err)">Error de Red (CORS o No Encontrado)</span>`;
+        responseOut.value = "Error al conectar. \n\nRazones comunes:\n1. La URL no existe o está caída.\n2. La API externa bloqueó la solicitud porque no permite peticiones desde navegadores (Bloqueo CORS).\n\nDetalle técnico: " + e.message;
+    }
 }
 
 function clearAll() {
@@ -444,4 +487,5 @@ function clearAll() {
     document.getElementById('btnCopy').style.display = 'none';
 }
 
+// Inicia en la pestaña de códigos
 setTab('codes');
