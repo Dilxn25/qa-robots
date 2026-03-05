@@ -367,17 +367,26 @@ function runDynamicQA(data) {
     document.getElementById('output').innerHTML = topHtml + htmlDetails;
 }
 
+// ----------------------------------------------------
+// EXTRACTOR STARTURLS (CORREGIDO PARA ENVOLVER EN startUrls)
+// ----------------------------------------------------
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
     let validItems = []; let handledCount = 0;
 
-    arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
+    // 1. Filtrar los Handled
+    arr.forEach(i => { 
+        if (i.Handled === true || i.handled === true) handledCount++; 
+        else validItems.push(i); 
+    });
 
+    // 2. Aplicar límites
     const selectAll = document.getElementById('extAll').checked;
     const limitInput = parseInt(document.getElementById('extLimit').value);
     const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
     const finalItems = validItems.slice(0, limit);
 
+    // 3. Mapear al formato url, userData, method
     const result = finalItems.map(i => {
         let uData = {};
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
@@ -385,8 +394,19 @@ function runExtraction(data) {
         return { url: finalUrl, userData: uData, method: "GET" };
     });
 
-    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">📊 RESULTADOS DE EXTRACCIÓN: <br><span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span></div>`;
-    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(result, null, 4)}</pre>`;
+    // 4. Crear reporte visual
+    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+        📊 RESULTADOS DE EXTRACCIÓN: <br>
+        <span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span>
+    </div>`;
+
+    // 5. ¡EL ARREGLO! Envolver todo en startUrls para Apify
+    const outputJSON = {
+        "startUrls": result
+    };
+
+    // 6. Imprimir en pantalla
+    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(outputJSON, null, 4)}</pre>`;
 }
 
 // ====================================================
