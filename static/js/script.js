@@ -587,6 +587,23 @@ function clearAll() {
 // ====================================================
 // IA Y MONGODB CON MANEJO DE ERRORES REAL
 // ====================================================
+// ====================================================
+// IA Y MONGODB (TARJETAS DINÁMICAS Y JUSTIFICACIÓN)
+// ====================================================
+
+// Función para crear una tarjeta de concepto en el HTML
+function addConceptCard(concepto, justificacion) {
+    const container = document.getElementById('aiConceptsContainer');
+    const id = 'concept_' + Date.now() + Math.random().toString(36).substr(2, 9);
+    const html = `
+    <div class="concept-card" id="${id}">
+        <button class="concept-card-delete" onclick="document.getElementById('${id}').remove()">X Eliminar</button>
+        <input type="text" class="concept-title" value="${concepto}" placeholder="Ej: Paginación">
+        <textarea class="concept-just" placeholder="Escribe por qué se dedujo esto...">${justificacion}</textarea>
+    </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+}
+
 async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
     const rawReason = document.getElementById('aiRawReason').value.trim();
@@ -594,7 +611,7 @@ async function extractAIMetadata() {
 
     const btn = event.target;
     const originalText = btn.innerHTML;
-    btn.innerHTML = "La IA está analizando...";
+    btn.innerHTML = "⏳ La IA está leyendo el código y razonando...";
     btn.disabled = true;
 
     try {
@@ -604,28 +621,32 @@ async function extractAIMetadata() {
             body: JSON.stringify({ url: url, reason: rawReason, code: code })
         });
 
-        // Leemos como texto primero para evitar el error de JSON vacío
         const textData = await response.text(); 
         
         if (!response.ok) {
             let errorMsg = "Error del servidor de Render.";
-            try {
-                const errJson = JSON.parse(textData);
-                errorMsg = errJson.error || errorMsg;
-            } catch(parseError) {
-                // Si entra aquí, Python falló catastróficamente (Ej: Clave API inválida y tiró error 500 HTML)
-                errorMsg = textData || "El servidor falló sin enviar datos. Revisa la consola de Render.";
-            }
+            try { errorMsg = JSON.parse(textData).error || errorMsg; } catch(e) { errorMsg = textData; }
             throw new Error(errorMsg);
         }
         
         const aiData = JSON.parse(textData);
 
+        // Llenar inputs básicos
         document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
         document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
         document.getElementById('aiFinalStack').value = aiData.actor || "Desconocido";
-        document.getElementById('aiFinalReasons').value = (aiData.conceptos_ia || []).join(' | ');
+        
+        // Llenar tarjetas de conceptos
+        const container = document.getElementById('aiConceptsContainer');
+        container.innerHTML = ''; // Limpiar anteriores
+        
+        const conceptosArray = aiData.conceptos_ia || [];
+        if (conceptosArray.length === 0) {
+            addConceptCard("Ninguno detectado", "La IA no encontró información suficiente.");
+        } else {
+            conceptosArray.forEach(c => addConceptCard(c.concepto, c.justificacion));
+        }
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
     } catch (e) {
@@ -639,8 +660,17 @@ async function extractAIMetadata() {
 async function saveToDatabase() {
     const btn = event.target;
     const originalText = btn.innerHTML;
-    btn.innerHTML = "Guardando en MongoDB...";
+    btn.innerHTML = "⏳ Guardando en MongoDB...";
     btn.disabled = true;
+
+    // Recolectar datos de las tarjetas de conceptos dinámicas
+    const conceptNodes = document.querySelectorAll('.concept-card');
+    const finalConcepts = [];
+    conceptNodes.forEach(node => {
+        const title = node.querySelector('.concept-title').value.trim();
+        const just = node.querySelector('.concept-just').value.trim();
+        if (title) finalConcepts.push({ concepto: title, justificacion: just });
+    });
 
     const payload = {
         contexto_web: {
@@ -654,7 +684,7 @@ async function saveToDatabase() {
         },
         justificacion: {
             texto_crudo: document.getElementById('aiRawReason').value.trim(),
-            conceptos_ia: document.getElementById('aiFinalReasons').value.split('|').map(s => s.trim()).filter(Boolean),
+            conceptos_ia: finalConcepts, // Array estructurado
             supervisado_por_humano: true
         },
         codigo: {
@@ -673,7 +703,7 @@ async function saveToDatabase() {
         const textData = await response.text();
 
         if (response.ok) {
-            btn.innerHTML = "¡Guardado Exitosamente!";
+            btn.innerHTML = "✅ ¡Guardado Exitosamente en la Nube!";
             btn.style.background = "#2ea043";
             setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000);
         } else {
@@ -687,5 +717,6 @@ async function saveToDatabase() {
         btn.disabled = false;
     }
 }
+
 
 setTab('codes');

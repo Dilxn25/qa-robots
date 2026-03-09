@@ -7,20 +7,17 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Cargar variables de Render
 MONGO_URI = os.getenv("MONGO_URI")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Conectar a MongoDB Atlas
 db = None
 if MONGO_URI:
     try:
-        client = MongoClient(MONGO_URI)
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         db = client.qa_robots_db
     except Exception as e:
-        print("Error conectando a Mongo:", e)
+        print("Error configurando Mongo:", e)
 
-# Configurar Gemini IA
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.5-flash')
@@ -48,9 +45,13 @@ def analyze_with_ai():
         "pais": "País deducido por la URL o Global",
         "tipo_robot": "Crawler o Updater",
         "actor": "Cheerio o Puppeteer",
-        "conceptos_ia": ["Concepto 1", "Concepto 2"]
+        "conceptos_ia": [
+            {{
+                "concepto": "Nombre corto del problema/solución (Ej: Evasión Antibot)",
+                "justificacion": "Breve explicación de por qué dedujiste esto viendo el código o el texto."
+            }}
+        ]
     }}
-    Extrae los conceptos_ia limpiando el motivo del DEV (Ej: "Evasión Antibot", "Migración a Puppeteer").
     """
     try:
         response = model.generate_content(prompt)
@@ -62,8 +63,8 @@ def analyze_with_ai():
 
 @app.route('/api/save', methods=['POST'])
 def save_to_mongo():
-    if not db:
-        return jsonify({"error": "Falta MONGO_URI en Render"}), 500
+    if db is None:
+        return jsonify({"error": "La base de datos no está conectada. Revisa la MONGO_URI o el Acceso de Red."}), 500
     
     data = request.json
     data['fecha_auditoria'] = datetime.utcnow().isoformat()
@@ -72,7 +73,7 @@ def save_to_mongo():
         db.entrenamiento_ia.insert_one(data)
         return jsonify({"status": "success"})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Fallo al guardar en Mongo: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5050)
+    app.run(debug=True, port=5000)
