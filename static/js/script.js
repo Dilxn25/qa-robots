@@ -20,72 +20,44 @@ function copyOutput() {
     });
 }
 
+// --- ACTUALIZADO: Manejo de Pestañas ---
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (event && event.target) event.target.classList.add('active');
-
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
-    const boxA = document.getElementById('boxA');
-    const boxB = document.getElementById('boxB');
-    const qaPanel = document.getElementById('qaConfigPanel');
-    const compPanel = document.getElementById('compConfigPanel');
-    const extraPanel = document.getElementById('extraConfigPanel');
-    const apiPanel = document.getElementById('apiTesterPanel');
-    const mainToolbar = document.getElementById('mainToolbar');
-    const mainOutput = document.getElementById('mainOutputPanel');
-    const labelA = document.getElementById('labelA');
-    const labelB = document.getElementById('labelB');
+    const boxA = document.getElementById('boxA'); const boxB = document.getElementById('boxB');
+    const qaPanel = document.getElementById('qaConfigPanel'); const compPanel = document.getElementById('compConfigPanel');
+    const extraPanel = document.getElementById('extraConfigPanel'); const apiPanel = document.getElementById('apiTesterPanel');
+    const aiPanel = document.getElementById('aiTrainPanel');
+    const mainToolbar = document.getElementById('mainToolbar'); const mainOutput = document.getElementById('mainOutputPanel');
+    const labelA = document.getElementById('labelA'); labelB = document.getElementById('labelB');
 
-    // Reset layout
-    boxA.style.display = 'flex';
-    boxB.style.display = 'flex';
-    qaPanel.style.display = 'none';
-    compPanel.style.display = 'none';
-    extraPanel.style.display = 'none';
-    apiPanel.style.display = 'none';
-    mainToolbar.style.display = 'flex';
-    mainOutput.style.display = 'flex';
+    boxA.style.display = 'flex'; boxB.style.display = 'flex';
+    qaPanel.style.display = 'none'; compPanel.style.display = 'none'; extraPanel.style.display = 'none';
+    apiPanel.style.display = 'none'; aiPanel.style.display = 'none';
+    mainToolbar.style.display = 'flex'; mainOutput.style.display = 'flex';
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
-    if (tab === 'codes') {
-        labelA.innerText = "Input A (Config/Código JS Antiguo)";
-        labelB.innerText = "Input B (Config/Código JS Nuevo)";
-    } 
+    if (tab === 'codes') { labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; } 
     else if (tab === 'results_comp') {
-        labelA.innerText = "Input A (Crawler / Datos Anteriores)";
-        labelB.innerText = "Input B (Updater / Datos Nuevos)";
-        compPanel.style.display = 'flex';
-        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
+        labelA.innerText = "Input A (Crawler / Anteriores)"; labelB.innerText = "Input B (Updater / Nuevos)";
+        compPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
     } 
-    else if (tab === 'dupes') {
-        labelA.innerText = "Input A (JSON a buscar duplicados)";
-        boxB.style.display = 'none';
-        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr';
-    } 
+    else if (tab === 'dupes') { labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; } 
     else if (tab === 'qa') {
-        labelA.innerText = "Input A (Productos a Validar)";
-        boxB.style.display = 'none';
-        qaPanel.style.display = 'flex';
-        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
+        labelA.innerText = "Productos a Validar"; boxB.style.display = 'none'; qaPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
+        toggleQaCrawlerFields();
     } 
     else if (tab === 'extra') {
-        labelA.innerText = "Input A (JSON para Extraer URLs)";
-        boxB.style.display = 'none';
-        extraPanel.style.display = 'flex';
-        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
+        labelA.innerText = "JSON para Extraer URLs"; boxB.style.display = 'none'; extraPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
-    else if (tab === 'api') {
-        boxA.style.display = 'none';
-        boxB.style.display = 'none';
-        mainToolbar.style.display = 'none';
-        mainOutput.style.display = 'none';
-        apiPanel.style.display = 'block';
-    }
-
+    else if (tab === 'api') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; }
+    else if (tab === 'ai_train') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; }
+    
     autoDetectFields();
 }
 
@@ -217,6 +189,7 @@ function compareCodesText(rawA, rawB) {
     document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
+// --- ACTUALIZADO: COMPARADOR DE RESULTADOS ESTILO QA ---
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
     const arrB = Array.isArray(listB) ? listB : [listB];
@@ -226,24 +199,31 @@ function compareResults(listA, listB) {
     let passesObj = {}; let failsObj = {};
     checkedFields.forEach(k => { passesObj[k] = 0; failsObj[k] = 0; });
 
-    let html = '';
+    let htmlDetails = '';
     const mapB_byID = new Map(); const mapB_byName = new Map();
+    
     arrB.forEach(item => {
+        if(item.Handled === true || item.handled === true) return; // Filtrar Handled del Updater
         if(item.ProductId) mapB_byID.set(String(item.ProductId).trim(), item);
         if(item.ProductName) mapB_byName.set(String(item.ProductName).trim(), item);
     });
 
-    arrA.forEach((itemA) => {
+    let handledCount = 0;
+    arrA.forEach((itemA, idx) => {
+        if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } // Filtrar Handled del Crawler
+
+        const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `POS_${idx}`;
+        let itemErrors = [];
         let rawId = itemA.ProductId ? String(itemA.ProductId).trim() : null;
         let itemB = mapB_byID.get(rawId);
 
         if (!itemB && itemA.ProductName && mapB_byName.has(String(itemA.ProductName).trim())) {
             itemB = mapB_byName.get(String(itemA.ProductName).trim());
-            html += `<div class="warn">⚠ [ID MODIFICADO] Producto: ${itemA.ProductName}. <br>Crawler ID: ${rawId} ➡ Updater ID: ${itemB.ProductId}</div>`;
+            itemErrors.push(`⚠ [ID MODIFICADO] Crawler ID: ${rawId} ➡ Updater ID: ${itemB.ProductId}`);
         }
 
         if (!itemB) {
-            html += `<div class="err">❌ [FALTANTE] El ID ${rawId} está en Crawler pero NO en la Comparación.</div>`;
+            itemErrors.push(`❌ [FALTANTE] No encontrado en la Comparación.`);
             checkedFields.forEach(k => failsObj[k]++);
         } else {
             checkedFields.forEach(key => {
@@ -254,17 +234,25 @@ function compareResults(listA, listB) {
 
                 if (sA !== sB) {
                     failsObj[key]++;
-                    html += `<div class="warn" style="margin-left: 15px;">↳ Campo <b>${key}</b>: <span class="old">${sA}</span> ➡ <span class="new">${sB}</span></div>`;
+                    itemErrors.push(`↳ <b>${key}</b>: <span style="color:var(--err)">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
                 } else passesObj[key]++;
             });
+        }
+
+        // Diseño de Tarjeta idéntico al QA
+        if (itemErrors.length > 0) {
+            htmlDetails += `<div class="qa-item">
+                <b style="color:var(--warn)">ID Referencia: ${displayId}</b>
+                <ul style="color:var(--text); margin:5px 0; font-family:monospace;">${itemErrors.map(e => `<li style="margin-bottom:4px;">${e}</li>`).join('')}</ul>
+            </div>`;
         }
     });
 
     if (compMode === 'updater') Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
 
-    const summaryJSON = { Failures: failsObj, Passes: passesObj };
+    const summaryJSON = { Failures: failsObj, Passes: passesObj, HandledIgnorados: handledCount };
     const summaryHtml = `<pre class="summary-json">INFO  Comparación Crawler vs ${compMode === 'updater' ? 'Updater' : 'Crawler'}:\nINFO  ${JSON.stringify(summaryJSON, null, 2)}</pre>`;
-    document.getElementById('output').innerHTML = summaryHtml + (html || "<h3 style='color:var(--success)'>✅ Todos los campos evaluados coinciden exactamente.</h3>");
+    document.getElementById('output').innerHTML = summaryHtml + (htmlDetails || "<h3 style='color:var(--success)'>✅ Todos los campos evaluados coinciden exactamente.</h3>");
 }
 
 function findDuplicates(data) {
@@ -300,6 +288,11 @@ function runDynamicQA(data) {
     const expManu = document.getElementById('qaManufacturer').value.trim();
     const expUrl = document.getElementById('qaUrl').value.trim();
     const expImg = document.getElementById('qaImage').value.trim();
+    
+    // Configurar Exclude Keywords
+    const rawExclude = document.getElementById('qaExclude').value.trim();
+    const excludeWords = rawExclude ? rawExclude.split(',').map(w => w.trim().toLowerCase()).filter(w => w) : [];
+
     const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked'));
     const fieldsToDupCheck = dupCheckboxes.map(cb => cb.value);
 
@@ -307,10 +300,9 @@ function runDynamicQA(data) {
     arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
 
     let stats = { Fields: {}, Codes: { CTINCode:0, EANCode:0, UPCCode:0, GTINCode:0, A2CCode:0, ASINCode:0, OTHERCode:0 }, Other: {} };
-    if(validItems.length > 0) Object.keys(validItems[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 }; });
+    if(validItems.length > 0) Object.keys(validItems[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Excluidos: 0, Duplicates: 0 }; });
 
-    let seenForDupes = {};
-    fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
+    let seenForDupes = {}; fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
 
     validItems.forEach((item, idx) => {
         let itemErrors = [];
@@ -319,9 +311,20 @@ function runDynamicQA(data) {
         for (let key in item) {
             let val = item[key];
             if (val === null || val === undefined) continue;
-            if (key !== 'Codes' && key !== 'Other' && !stats.Fields[key]) stats.Fields[key] = { Name: key, Pass: 0, Fail: 0, Warnings: 0, Duplicates: 0 };
+            if (key !== 'Codes' && key !== 'Other' && !stats.Fields[key]) stats.Fields[key] = { Name: key, Pass: 0, Fail: 0, Warnings: 0, Excluidos: 0, Duplicates: 0 };
 
-            let fieldFailed = false; let fieldWarn = false;
+            let fieldFailed = false; let fieldWarn = false; let fieldExcluded = false;
+
+            // Filtro Exclude Keywords (Solo Textos y Solo Crawlers)
+            if (expRobot === 'Crawler' && excludeWords.length > 0 && typeof val === 'string') {
+                const lowerVal = val.toLowerCase();
+                const foundWord = excludeWords.find(w => lowerVal.includes(w));
+                if (foundWord) {
+                    itemErrors.push(`[Excluido] ${key} contiene palabra prohibida: '${foundWord}'`);
+                    fieldExcluded = true;
+                    fieldFailed = true;
+                }
+            }
 
             if (key === 'Codes') {
                 let totalC = 0;
@@ -340,10 +343,6 @@ function runDynamicQA(data) {
             if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Imagen] Base incorrecta.`); fieldFailed = true; }
             if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Crawler] No debe tener Ratings.`); fieldWarn = true; }
             if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Updater] Faltan campos actualizables.`); fieldWarn = true; }
-            if (key === 'ProductName' && typeof val === 'string') {
-                if (/\s\s+/.test(val)) { itemErrors.push(`[Nombre] Espacios dobles.`); fieldWarn = true; }
-                if (/&amp|&#xE9|&#xE2|&#xEE|&#xE0|&#x2019|&#xB0/.test(val)) { itemErrors.push(`[Nombre] Entidades HTML.`); fieldWarn = true; }
-            }
 
             if (fieldsToDupCheck.includes(key) && val) {
                 const valStr = String(val).trim();
@@ -354,7 +353,8 @@ function runDynamicQA(data) {
             }
 
             if (stats.Fields[key]) {
-                if (fieldFailed) stats.Fields[key].Fail++;
+                if (fieldExcluded) stats.Fields[key].Excluidos++;
+                else if (fieldFailed) stats.Fields[key].Fail++;
                 else if (fieldWarn) stats.Fields[key].Warnings++;
                 else stats.Fields[key].Pass++;
             }
@@ -506,6 +506,101 @@ function clearAll() {
     document.getElementById('output').innerHTML = 'Consola limpia...';
     document.getElementById('btnCopy').style.display = 'none';
 }
+// --- NUEVO: Control para mostrar/ocultar el filtro de excluidas ---
+function toggleQaCrawlerFields() {
+    const isCrawler = document.getElementById('qaRobotType').value === 'Crawler';
+    document.getElementById('qaExcludeGroup').style.display = isCrawler ? 'block' : 'none';
+}
 
+/// --- CONEXIÓN REAL A LA IA DE GOOGLE ---
+async function extractAIMetadata() {
+    const url = document.getElementById('aiUrl').value.trim();
+    const rawReason = document.getElementById('aiRawReason').value.trim();
+    const code = document.getElementById('aiNewCode').value.trim() || document.getElementById('aiOldCode').value.trim();
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "⏳ La IA está analizando...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url, reason: rawReason, code: code })
+        });
+
+        if (!response.ok) throw new Error("Fallo en la API de IA");
+        
+        const aiData = await response.json();
+
+        // Llenar Formulario de Supervisión con lo que pensó la IA
+        document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
+        document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
+        document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
+        document.getElementById('aiFinalStack').value = aiData.actor || "Desconocido";
+        document.getElementById('aiFinalReasons').value = (aiData.conceptos_ia || []).join(' | ');
+
+        document.getElementById('aiSupervisionArea').style.display = 'block';
+    } catch (e) {
+        alert("Error consultando a Gemini: " + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// --- GUARDAR EN MONGODB ATLAS ---
+async function saveToDatabase() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "💾 Guardando en MongoDB...";
+    btn.disabled = true;
+
+    const payload = {
+        contexto_web: {
+            start_url: document.getElementById('aiUrl').value.trim(),
+            dominio: document.getElementById('aiFinalDomain').value.trim(),
+            pais: document.getElementById('aiFinalCountry').value.trim()
+        },
+        arquitectura: {
+            tipo_robot: document.getElementById('aiFinalType').value.trim(),
+            actor: document.getElementById('aiFinalStack').value.trim()
+        },
+        justificacion: {
+            texto_crudo: document.getElementById('aiRawReason').value.trim(),
+            conceptos_ia: document.getElementById('aiFinalReasons').value.split('|').map(s => s.trim()).filter(Boolean),
+            supervisado_por_humano: true
+        },
+        codigo: {
+            codigo_antiguo: document.getElementById('aiOldCode').value.trim(),
+            codigo_nuevo: document.getElementById('aiNewCode').value.trim()
+        }
+    };
+
+    try {
+        const response = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            btn.innerHTML = "✅ ¡Guardado Exitosamente!";
+            btn.style.background = "#2ea043";
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = "var(--success)";
+                btn.disabled = false;
+            }, 3000);
+        } else {
+            throw new Error("Error en el servidor");
+        }
+    } catch (e) {
+        alert("No se pudo guardar en Mongo: " + e.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 // Inicia en la pestaña de códigos
 setTab('codes');
