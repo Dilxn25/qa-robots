@@ -20,7 +20,7 @@ function copyOutput() {
     });
 }
 
-// --- ACTUALIZADO: Manejo de Pestañas ---
+// --- Manejo de Pestañas ---
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -28,12 +28,17 @@ function setTab(tab) {
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
-    const boxA = document.getElementById('boxA'); const boxB = document.getElementById('boxB');
-    const qaPanel = document.getElementById('qaConfigPanel'); const compPanel = document.getElementById('compConfigPanel');
-    const extraPanel = document.getElementById('extraConfigPanel'); const apiPanel = document.getElementById('apiTesterPanel');
+    const boxA = document.getElementById('boxA'); 
+    const boxB = document.getElementById('boxB');
+    const qaPanel = document.getElementById('qaConfigPanel'); 
+    const compPanel = document.getElementById('compConfigPanel');
+    const extraPanel = document.getElementById('extraConfigPanel'); 
+    const apiPanel = document.getElementById('apiTesterPanel');
     const aiPanel = document.getElementById('aiTrainPanel');
-    const mainToolbar = document.getElementById('mainToolbar'); const mainOutput = document.getElementById('mainOutputPanel');
-    const labelA = document.getElementById('labelA'); labelB = document.getElementById('labelB');
+    const mainToolbar = document.getElementById('mainToolbar'); 
+    const mainOutput = document.getElementById('mainOutputPanel');
+    const labelA = document.getElementById('labelA'); 
+    const labelB = document.getElementById('labelB');
 
     boxA.style.display = 'flex'; boxB.style.display = 'flex';
     qaPanel.style.display = 'none'; compPanel.style.display = 'none'; extraPanel.style.display = 'none';
@@ -42,12 +47,16 @@ function setTab(tab) {
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
-    if (tab === 'codes') { labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; } 
+    if (tab === 'codes') { 
+        labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; 
+    } 
     else if (tab === 'results_comp') {
         labelA.innerText = "Input A (Crawler / Anteriores)"; labelB.innerText = "Input B (Updater / Nuevos)";
         compPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
     } 
-    else if (tab === 'dupes') { labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; } 
+    else if (tab === 'dupes') { 
+        labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; 
+    } 
     else if (tab === 'qa') {
         labelA.innerText = "Productos a Validar"; boxB.style.display = 'none'; qaPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
         toggleQaCrawlerFields();
@@ -55,14 +64,18 @@ function setTab(tab) {
     else if (tab === 'extra') {
         labelA.innerText = "JSON para Extraer URLs"; boxB.style.display = 'none'; extraPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
-    else if (tab === 'api') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; }
-    else if (tab === 'ai_train') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; }
+    else if (tab === 'api') { 
+        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; 
+    }
+    else if (tab === 'ai_train') { 
+        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; 
+    }
     
     autoDetectFields();
 }
 
 function autoDetectFields() {
-    if(currentTab === 'api') return;
+    if(currentTab === 'api' || currentTab === 'ai_train') return;
     try {
         const rawA = document.getElementById('jsonA').value.trim();
         if(!rawA) return;
@@ -189,7 +202,6 @@ function compareCodesText(rawA, rawB) {
     document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
-// --- ACTUALIZADO: COMPARADOR DE RESULTADOS ESTILO QA ---
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
     const arrB = Array.isArray(listB) ? listB : [listB];
@@ -203,14 +215,14 @@ function compareResults(listA, listB) {
     const mapB_byID = new Map(); const mapB_byName = new Map();
     
     arrB.forEach(item => {
-        if(item.Handled === true || item.handled === true) return; // Filtrar Handled del Updater
+        if(item.Handled === true || item.handled === true) return; 
         if(item.ProductId) mapB_byID.set(String(item.ProductId).trim(), item);
         if(item.ProductName) mapB_byName.set(String(item.ProductName).trim(), item);
     });
 
     let handledCount = 0;
     arrA.forEach((itemA, idx) => {
-        if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } // Filtrar Handled del Crawler
+        if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } 
 
         const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `POS_${idx}`;
         let itemErrors = [];
@@ -239,7 +251,6 @@ function compareResults(listA, listB) {
             });
         }
 
-        // Diseño de Tarjeta idéntico al QA
         if (itemErrors.length > 0) {
             htmlDetails += `<div class="qa-item">
                 <b style="color:var(--warn)">ID Referencia: ${displayId}</b>
@@ -281,6 +292,11 @@ function findDuplicates(data) {
     document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>✅ El JSON está limpio, no hay duplicados.</h3>";
 }
 
+function toggleQaCrawlerFields() {
+    const isCrawler = document.getElementById('qaRobotType').value === 'Crawler';
+    document.getElementById('qaExcludeGroup').style.display = isCrawler ? 'block' : 'none';
+}
+
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
     let htmlDetails = '';
@@ -289,7 +305,6 @@ function runDynamicQA(data) {
     const expUrl = document.getElementById('qaUrl').value.trim();
     const expImg = document.getElementById('qaImage').value.trim();
     
-    // Configurar Exclude Keywords
     const rawExclude = document.getElementById('qaExclude').value.trim();
     const excludeWords = rawExclude ? rawExclude.split(',').map(w => w.trim().toLowerCase()).filter(w => w) : [];
 
@@ -315,14 +330,12 @@ function runDynamicQA(data) {
 
             let fieldFailed = false; let fieldWarn = false; let fieldExcluded = false;
 
-            // Filtro Exclude Keywords (Solo Textos y Solo Crawlers)
             if (expRobot === 'Crawler' && excludeWords.length > 0 && typeof val === 'string') {
                 const lowerVal = val.toLowerCase();
                 const foundWord = excludeWords.find(w => lowerVal.includes(w));
                 if (foundWord) {
                     itemErrors.push(`[Excluido] ${key} contiene palabra prohibida: '${foundWord}'`);
-                    fieldExcluded = true;
-                    fieldFailed = true;
+                    fieldExcluded = true; fieldFailed = true;
                 }
             }
 
@@ -367,26 +380,20 @@ function runDynamicQA(data) {
     document.getElementById('output').innerHTML = topHtml + htmlDetails;
 }
 
-// ----------------------------------------------------
-// EXTRACTOR STARTURLS (CORREGIDO PARA ENVOLVER EN startUrls)
-// ----------------------------------------------------
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
     let validItems = []; let handledCount = 0;
 
-    // 1. Filtrar los Handled
     arr.forEach(i => { 
         if (i.Handled === true || i.handled === true) handledCount++; 
         else validItems.push(i); 
     });
 
-    // 2. Aplicar límites
     const selectAll = document.getElementById('extAll').checked;
     const limitInput = parseInt(document.getElementById('extLimit').value);
     const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
     const finalItems = validItems.slice(0, limit);
 
-    // 3. Mapear al formato url, userData, method
     const result = finalItems.map(i => {
         let uData = {};
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
@@ -394,18 +401,12 @@ function runExtraction(data) {
         return { url: finalUrl, userData: uData, method: "GET" };
     });
 
-    // 4. Crear reporte visual
     const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
         📊 RESULTADOS DE EXTRACCIÓN: <br>
         <span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span>
     </div>`;
 
-    // 5. ¡EL ARREGLO! Envolver todo en startUrls para Apify
-    const outputJSON = {
-        "startUrls": result
-    };
-
-    // 6. Imprimir en pantalla
+    const outputJSON = { "startUrls": result };
     document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(outputJSON, null, 4)}</pre>`;
 }
 
@@ -425,16 +426,13 @@ function importCurlPrompt() {
     if (!curl) return;
 
     try {
-        // Parsear URL
         const urlMatch = curl.match(/curl\s+(?:-X\s+[A-Z]+\s+)?['"]?([^'"\s]+)['"]?/);
         if (urlMatch) document.getElementById('apiUrl').value = urlMatch[1];
 
-        // Parsear Método
         const methodMatch = curl.match(/-X\s+([A-Z]+)/);
         if (methodMatch) document.getElementById('apiMethod').value = methodMatch[1];
         else document.getElementById('apiMethod').value = 'GET';
 
-        // Parsear Headers
         const headerMatches = [...curl.matchAll(/-H\s+['"]([^'"]+)['"]/g)];
         let headersObj = {};
         headerMatches.forEach(m => {
@@ -445,11 +443,10 @@ function importCurlPrompt() {
             document.getElementById('apiHeadersInput').value = JSON.stringify(headersObj, null, 2);
         }
 
-        // Parsear Data
         const dataMatch = curl.match(/--data(?:-raw)?\s+['"]([^'"]+)['"]/);
         if (dataMatch) {
             document.getElementById('apiBodyInput').value = dataMatch[1];
-            if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; // asume POST si hay body
+            if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; 
         }
         
     } catch(e) {
@@ -496,8 +493,8 @@ async function sendApiRequest() {
             responseOut.value = text;
         }
     } catch (e) {
-        statusOut.innerHTML = `<span style="color:var(--err)">Error de Red (CORS o No Encontrado)</span>`;
-        responseOut.value = "Error al conectar. \n\nRazones comunes:\n1. La URL no existe o está caída.\n2. La API externa bloqueó la solicitud porque no permite peticiones desde navegadores (Bloqueo CORS).\n\nDetalle técnico: " + e.message;
+        statusOut.innerHTML = `<span style="color:var(--err)">Error de Red</span>`;
+        responseOut.value = "Error al conectar. \n1. La URL no existe.\n2. Bloqueo CORS.\nDetalle técnico: " + e.message;
     }
 }
 
@@ -506,13 +503,8 @@ function clearAll() {
     document.getElementById('output').innerHTML = 'Consola limpia...';
     document.getElementById('btnCopy').style.display = 'none';
 }
-// --- NUEVO: Control para mostrar/ocultar el filtro de excluidas ---
-function toggleQaCrawlerFields() {
-    const isCrawler = document.getElementById('qaRobotType').value === 'Crawler';
-    document.getElementById('qaExcludeGroup').style.display = isCrawler ? 'block' : 'none';
-}
 
-/// --- CONEXIÓN REAL A LA IA DE GOOGLE ---
+// --- CONEXIÓN REAL A LA IA DE GOOGLE ---
 async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
     const rawReason = document.getElementById('aiRawReason').value.trim();
@@ -534,7 +526,6 @@ async function extractAIMetadata() {
         
         const aiData = await response.json();
 
-        // Llenar Formulario de Supervisión con lo que pensó la IA
         document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
         document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
@@ -602,5 +593,6 @@ async function saveToDatabase() {
         btn.disabled = false;
     }
 }
+
 // Inicia en la pestaña de códigos
 setTab('codes');
