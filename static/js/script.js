@@ -219,12 +219,11 @@ function compareResults(listA, listB) {
     checkedFields.forEach(k => { passesObj[k] = 0; failsObj[k] = 0; });
 
     let htmlDetails = '';
-    const mapB_byID = new Map(); const mapB_byName = new Map();
+    const mapB_byID = new Map();
     
     arrB.forEach(item => {
         if(item.Handled === true || item.handled === true) return; 
         if(item.ProductId) mapB_byID.set(String(item.ProductId).trim(), item);
-        if(item.ProductName) mapB_byName.set(String(item.ProductName).trim(), item);
     });
 
     let handledCount = 0; let totalErrors = 0;
@@ -232,18 +231,13 @@ function compareResults(listA, listB) {
     arrA.forEach((itemA, idx) => {
         if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } 
 
-        const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `Posición_${idx}`;
+        const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `POS_${idx}`;
         let itemErrors = [];
         let rawId = itemA.ProductId ? String(itemA.ProductId).trim() : null;
         let itemB = mapB_byID.get(rawId);
 
-        if (!itemB && itemA.ProductName && mapB_byName.has(String(itemA.ProductName).trim())) {
-            itemB = mapB_byName.get(String(itemA.ProductName).trim());
-            itemErrors.push(`[ID MODIFICADO] Crawler: ${rawId} -> Updater: ${itemB.ProductId}`);
-        }
-
         if (!itemB) {
-            itemErrors.push(`[FALTANTE] No encontrado en la base de comparación.`);
+            itemErrors.push(`❌ [FALTANTE] No encontrado en la base de comparación.`);
             checkedFields.forEach(k => failsObj[k]++);
         } else {
             checkedFields.forEach(key => {
@@ -254,7 +248,7 @@ function compareResults(listA, listB) {
 
                 if (sA !== sB) {
                     failsObj[key]++;
-                    itemErrors.push(`[${key}] <span style="color:var(--err)">${sA}</span> -> <span style="color:var(--success)">${sB}</span>`);
+                    itemErrors.push(`↳ <b style="color:var(--accent)">[${key}]</b> <span style="color:var(--err); text-decoration:line-through;">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
                 } else passesObj[key]++;
             });
         }
@@ -267,7 +261,7 @@ function compareResults(listA, listB) {
                     <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
                     <span class="badge badge-err">${itemErrors.length} Diferencias</span>
                 </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6; list-style-type: square;">
+                <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6; list-style-type: none;">
                     ${itemErrors.map(e => `<li>${e}</li>`).join('')}
                 </ul>
             </div>`;
@@ -276,15 +270,39 @@ function compareResults(listA, listB) {
 
     if (compMode === 'updater') Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
 
+    // CÁLCULO DE PRODUCTOS PERFECTOS
+    const validItemsCount = arrA.length - handledCount;
+    const perfectProducts = validItemsCount - totalErrors;
+
+    // CREACIÓN DE TABLA BONITA (Reemplazo del JSON)
+    let compTableRows = '';
+    Object.keys(passesObj).forEach(key => {
+        let p = passesObj[key]; let f = failsObj[key];
+        compTableRows += `<tr>
+            <td><b style="color:var(--accent)">${key}</b></td>
+            <td class="${p > 0 ? 't-pass' : 't-zero'}">${p}</td>
+            <td class="${f > 0 ? 't-fail' : 't-zero'}">${f}</td>
+        </tr>`;
+    });
+
+    const detailedTableHtml = `
+    <div class="summary-table-container">
+        <h4 class="section-title">📊 Resumen Analítico por Campo</h4>
+        <table class="summary-table">
+            <thead><tr><th>Campo Analizado</th><th>✅ Coinciden (Pasan)</th><th>❌ Diferencias (Fallan)</th></tr></thead>
+            <tbody>${compTableRows}</tbody>
+        </table>
+    </div>`;
+
     const topHtml = `
     <div class="stats-grid">
         <div class="stat-box"><h3>${arrA.length}</h3><span>Total Input A</span></div>
         <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
-        <div class="stat-box" style="border-color:var(--success)"><h3>${Object.values(passesObj).reduce((a,b)=>a+b,0)}</h3><span style="color:var(--success)">Campos Idénticos</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${perfectProducts}</h3><span style="color:var(--success)">Productos Perfectos</span></div>
         <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
     </div>`;
 
-    document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
+    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `
         <div style="text-align:center; padding: 40px;">
             <h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3>
             <p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p>
@@ -360,7 +378,7 @@ function runDynamicQA(data) {
 
     validItems.forEach((item, idx) => {
         let itemErrors = [];
-        const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `Posición_${idx}`;
+        const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `POS_${idx}`;
         let itemHasCriticalError = false;
 
         for (let key in item) {
@@ -382,25 +400,25 @@ function runDynamicQA(data) {
             if (key === 'Codes') {
                 let totalC = 0;
                 for (let c in val) { if (val[c] && val[c] !== 0 && val[c] !== "0") { totalC++; if(stats.Codes[c] !== undefined) stats.Codes[c]++; else stats.Codes.OTHERCode++; } }
-                if (expRobot === 'Crawler' && totalC === 0) { itemErrors.push(`[Códigos Faltantes] Crawler sin códigos válidos.`); itemHasCriticalError = true; }
+                if (expRobot === 'Crawler' && totalC === 0) { itemErrors.push(`[Codes] Crawler sin códigos.`); itemHasCriticalError = true; }
             } 
             else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
             else if (NUMBER_FIELDS.includes(key)) { 
-                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[Formato Inválido] ${key} debe ser Número.`); fieldFailed = true; itemHasCriticalError = true; } 
+                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; itemHasCriticalError = true; } 
             } else { 
-                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[Formato Inválido] ${key} debe ser Texto.`); fieldFailed = true; itemHasCriticalError = true; } 
+                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; itemHasCriticalError = true; } 
             }
 
-            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Validación Regex] Fabricante esperado: ${expManu}`); fieldFailed = true; }
-            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[Validación Regex] URL base incorrecta.`); fieldFailed = true; itemHasCriticalError = true; }
-            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Validación Regex] Imagen base incorrecta.`); fieldFailed = true; }
-            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Alerta] Crawler no debe tener Ratings.`); fieldWarn = true; }
-            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Alerta] Updater sin campos actualizables.`); fieldWarn = true; }
+            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Fabricante] Esperado: ${expManu}`); fieldFailed = true; }
+            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[URL] Base incorrecta.`); fieldFailed = true; itemHasCriticalError = true; }
+            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Imagen] Base incorrecta.`); fieldFailed = true; }
+            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Crawler] No debe tener Ratings.`); fieldWarn = true; }
+            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Updater] Faltan campos actualizables.`); fieldWarn = true; }
 
             if (fieldsToDupCheck.includes(key) && val) {
                 const valStr = String(val).trim();
                 if (seenForDupes[key].has(valStr)) {
-                    itemErrors.push(`[Duplicado] ${key} repetido: ${valStr}`);
+                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`);
                     stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true;
                 } else seenForDupes[key].add(valStr);
             }
@@ -422,22 +440,55 @@ function runDynamicQA(data) {
                     <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${id}</span></strong>
                     <span class="badge ${badgeClass}">${itemErrors.length} Observaciones</span>
                 </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height: 1.6; list-style-type: square;">
+                <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:var(--err); font-size:13px; line-height: 1.6; list-style-type: none;">
                     ${itemErrors.map(e => `<li>${e}</li>`).join('')}
                 </ul>
             </div>`;
         }
     });
 
+    // CÁLCULO DE PRODUCTOS PERFECTOS
+    const validItemsCount = arr.length - handledCount;
+    const perfectProducts = validItemsCount - totalErrors;
+
+    // CREACIÓN DE TABLA BONITA QA (Reemplazo del JSON)
+    let qaTableRows = '';
+    Object.values(stats.Fields).forEach(f => {
+        qaTableRows += `<tr>
+            <td><b style="color:var(--accent)">${f.Name}</b></td>
+            <td class="${f.Pass > 0 ? 't-pass' : 't-zero'}">${f.Pass}</td>
+            <td class="${f.Fail > 0 ? 't-fail' : 't-zero'}">${f.Fail}</td>
+            <td class="${f.Warnings > 0 ? 't-warn' : 't-zero'}">${f.Warnings}</td>
+            <td class="${f.Duplicates > 0 ? 't-fail' : 't-zero'}">${f.Duplicates}</td>
+            <td class="${f.Excluidos > 0 ? 't-warn' : 't-zero'}">${f.Excluidos}</td>
+        </tr>`;
+    });
+
+    let codesRows = Object.keys(stats.Codes).map(k => {
+        let val = stats.Codes[k];
+        return `<span class="code-badge">${k}: <b class="${val>0?'t-pass':'t-zero'}">${val}</b></span>`;
+    }).join('');
+
+    const detailedTableHtml = `
+    <div class="summary-table-container">
+        <h4 class="section-title">📊 Resumen Analítico por Campo</h4>
+        <table class="summary-table">
+            <thead><tr><th>Campo</th><th>✅ Aprobados</th><th>❌ Fallos</th><th>⚠️ Alertas</th><th>📋 Dups</th><th>🚫 Excluidos</th></tr></thead>
+            <tbody>${qaTableRows}</tbody>
+        </table>
+        <h4 class="section-title" style="margin-top:20px;">🏷️ Resumen de Códigos</h4>
+        <div>${codesRows}</div>
+    </div>`;
+
     const topHtml = `
     <div class="stats-grid">
         <div class="stat-box"><h3>${arr.length}</h3><span>Total Json</span></div>
-        <div class="stat-box" style="border-color:var(--success)"><h3>${validItems.length}</h3><span style="color:var(--success)">Analizados</span></div>
         <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${perfectProducts}</h3><span style="color:var(--success)">Productos Perfectos</span></div>
         <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
     </div>`;
 
-    document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
+    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `
         <div style="text-align:center; padding: 40px;">
             <h3 style="color:var(--success); margin:0;">Validación QA Exitosa</h3>
             <p style="color:#8b949e;">No se encontraron errores ni advertencias en los datos.</p>
