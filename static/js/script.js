@@ -85,8 +85,9 @@ function setTab(tab) {
     if (tab === 'codes') { 
         document.getElementById('boxA').style.display = 'flex'; 
         document.getElementById('boxB').style.display = 'flex'; 
-        document.getElementById('labelA').innerText = "JS Antiguo"; 
-        document.getElementById('labelB').innerText = "JS Nuevo"; 
+        document.getElementById('aiTrainPanel').style.display = 'block'; // Panel IA visible aquí
+        document.getElementById('labelA').innerText = "Input A (Código Antiguo)"; 
+        document.getElementById('labelB').innerText = "Input B (Código Nuevo)"; 
     } 
     else if (tab === 'results_comp') { 
         document.getElementById('boxA').style.display = 'flex'; 
@@ -699,13 +700,17 @@ function addConceptCard(concepto, justificacion) {
 async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
     const rawReason = document.getElementById('aiRawReason').value.trim();
-    const code = document.getElementById('aiNewCode').value.trim() || document.getElementById('aiOldCode').value.trim();
+    
+    // Extrayendo el código directamente de los inputs de comparación principal
+    const oldCode = document.getElementById('jsonA').value.trim();
+    const newCode = document.getElementById('jsonB').value.trim();
 
     const btn = event.target; const originalText = btn.innerHTML;
     btn.innerHTML = "⏳ La IA está leyendo y documentando..."; btn.disabled = true;
 
     try {
-        const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, reason: rawReason, code }) });
+        // Se envían ambos códigos para entrenar el modelo de ML
+        const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, reason: rawReason, old_code: oldCode, new_code: newCode }) });
         const textData = await response.text(); 
         if (!response.ok) throw new Error(textData);
         
@@ -715,6 +720,13 @@ async function extractAIMetadata() {
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
         document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
         document.getElementById('aiFinalStack').value = aiData.actor || "Desconocido";
+        
+        // Populando campos de Machine Learning
+        if (aiData.analisis_entrenamiento) {
+            document.getElementById('aiRootProblem').value = aiData.analisis_entrenamiento.problema_raiz || "";
+            document.getElementById('aiSolutionApplied').value = aiData.analisis_entrenamiento.solucion_aplicada || "";
+            document.getElementById('aiRepairPattern').value = aiData.analisis_entrenamiento.patron_reparacion || "";
+        }
         
         document.getElementById('aiGeneratedDocs').value = aiData.documentacion_md || "No se pudo generar la documentación.";
 
@@ -741,6 +753,11 @@ async function saveToDatabase() {
     const payload = {
         contexto_web: { start_url: document.getElementById('aiUrl').value.trim(), dominio: document.getElementById('aiFinalDomain').value.trim(), pais: document.getElementById('aiFinalCountry').value.trim() },
         arquitectura: { tipo_robot: document.getElementById('aiFinalType').value.trim(), actor: document.getElementById('aiFinalStack').value.trim() },
+        analisis_entrenamiento: {
+            problema_raiz: document.getElementById('aiRootProblem').value.trim(),
+            solucion_aplicada: document.getElementById('aiSolutionApplied').value.trim(),
+            patron_reparacion: document.getElementById('aiRepairPattern').value.trim()
+        },
         justificacion: { texto_crudo: document.getElementById('aiRawReason').value.trim(), conceptos_ia: finalConcepts, supervisado_por_humano: true },
         documentacion: document.getElementById('aiGeneratedDocs').value.trim()
     };

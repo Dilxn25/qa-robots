@@ -34,40 +34,60 @@ def analyze_with_ai():
     data = request.json
     
     prompt = f"""
-    Eres un Analista QA experto en Web Scraping.
-    Analiza los cambios en este robot:
-    URL: {data.get('url', 'N/A')}
-    Motivo (Crudo): {data.get('reason', 'N/A')}
-    Código: {data.get('code', 'N/A')}
-    
-    Devuelve ÚNICAMENTE un JSON con esta estructura:
-    {{
-        "dominio": "Nombre del dominio",
-        "pais": "País deducido o Global",
-        "tipo_robot": "Crawler o Updater",
-        "actor": "Cheerio, Puppeteer o Metamorph",
-        "conceptos_ia": [
-            {{ "concepto": "Ej: Evasión Antibot", "justificacion": "Ej: Se añadió User-Agent" }}
-        ],
-        "documentacion_md": "TEXTO_MARKDOWN_AQUI"
-    }}
+Eres un Ingeniero Principal de QA y Arquitecto de Datos experto en Web Scraping (Apify, Puppeteer, Cheerio, Metamorph).
+Tu objetivo es analizar un parche de código y extraer conocimiento técnico estructurado que será usado para entrenar a un futuro modelo de IA especializado en auto-reparar scrapers.
 
-    REGLAS ESTRICTAS PARA 'documentacion_md' (DEBE ESTAR EN INGLÉS):
-    1. Inicia con 'Crawler Input' o 'Updater Input' seguido de un bloque de código JSON con la URL de ejemplo.
-    2. Luego pon el título '**About crawler robot**' o '**About updater robot**'.
-    3. Crea la viñeta '* **Made the following fixes**' y añade sub-viñetas muy directas (Ej: The price extraction was changed to use...).
-    4. Crea la viñeta '* **Made the following improvements**' y añade sub-viñetas directas.
-    5. Crea la viñeta '* **Results and main settings**' y pon EXACTAMENTE Y SOLO ESTAS 4 LÍNEAS (no inventes más):
-       * Preserved version 3.0.17 [version-3]
-       * Preserved proxy configuration DATACENTER [AUTOMATIC]
-       * Preserved ID of each product
-       * Preserved the rest of original production logic
-    6. Crea la viñeta '* **Extra notes**' y pon justificaciones naturales, muy simples, SIN adjetivos (Ej: The stock logic was updated because the button label changes...).
-    """
+URL Objetivo: {data.get('url', 'N/A')}
+Motivo del desarrollador (Crudo): {data.get('reason', 'N/A')}
+Código Antiguo: {data.get('old_code', 'N/A')}
+Código Nuevo: {data.get('new_code', 'N/A')}
+
+Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
+{{
+    "dominio": "Nombre del dominio extraído de la URL",
+    "pais": "País deducido o Global",
+    "tipo_robot": "Crawler o Updater",
+    "actor": "Cheerio, Puppeteer o Metamorph",
+    "analisis_entrenamiento": {{
+        "problema_raiz": "Explicación técnica profunda de por qué fallaba el código antiguo (Ej: 'Cambio en la estructura del DOM de .product-list a .grid-items', 'Bloqueo por huella TLS', 'Paginación infinita alterada').",
+        "solucion_aplicada": "Explicación algorítmica de cómo el código nuevo resuelve el problema.",
+        "patron_reparacion": "Clasificación del parche. SÓLO USA ESTOS VALORES: [DOM Traversal, Anti-bot Evasion, Network Interception, State Management, Data Parsing, Pagination Logic, Proxy Configuration, Unknown]"
+    }},
+    "conceptos_ia": [
+        {{ "concepto": "Técnica avanzada detectada", "justificacion": "Análisis técnico de la técnica en el contexto del código." }}
+    ],
+    "documentacion_md": "TEXTO_MARKDOWN_AQUI"
+}}
+
+REGLAS ESTRICTAS PARA 'documentacion_md' (INGLÉS, EXTREMADAMENTE TÉCNICO, CERO LENGUAJE ROBÓTICO):
+1. Inicia con '**Crawler Input**' o '**Updater Input**' y un bloque ```json con la URL en texto plano.
+2. Título '**About crawler robot**' o '**About updater robot**'.
+3. Viñeta '* **Made the following fixes**'. SÓLO sub-viñetas con la acción técnica directa de la reparación (Ej: 'Updated extraction logic to target .items property'). PROHIBIDO justificar o explicar el "para qué".
+4. Viñeta '* **Made the following improvements**'. SÓLO optimizaciones o logs añadidos, no reparaciones. Sola la acción técnica cruda.
+5. Viñeta '* **Results and main settings**'. Analiza los códigos y usa EXACTAMENTE estas 4 líneas evaluando si se mantuvo o cambió:
+   * [Preserved/Changed] version [detectar versión] [version-X]
+   * [Preserved/Changed] proxy configuration [detectar proxy] [AUTOMATIC]
+   * [Preserved/Changed] ID of each product
+   * [Preserved/Changed] the rest of original production logic
+6. Viñeta '* **Extra notes**'. AQUÍ Y SOLO AQUÍ van las justificaciones técnicas de los fixes/improvements. Ve al grano, sin introducciones.
+7. Al final, añade el subtítulo '**Robot Testing**' y la siguiente tabla exacta en Markdown:
+
+| Tested (with/between) | Last Crawler run (Apify Last Run) | Tested with Production Updater Robot in CS_QA environment | Crawler Validation (validation robot test) | Crawler-updater comparison (comparison robot test) | Extra Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Crawler results | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | |
+
+IMPORTANTE PARA FORMATO: Escapa correctamente todos los saltos de línea (usa \\n) y las comillas dobles (\\") dentro del string de 'documentacion_md' para que el JSON sea estrictamente válido. No incluyas texto introductorio, devuelve directamente el objeto JSON.
+"""
+    
     try:
-        response = model.generate_content(prompt)
-        clean_text = response.text.replace('```json', '').replace('```', '').strip()
-        resultado = json.loads(clean_text)
+        # Forzamos la respuesta nativa en JSON para evitar errores de parseo
+        response = model.generate_content(
+            prompt, 
+            generation_config={"response_mime_type": "application/json"}
+        )
+        
+        # Como forzamos application/json, el texto ya viene limpio sin bloques de código Markdown alrededor
+        resultado = json.loads(response.text)
         return jsonify(resultado)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

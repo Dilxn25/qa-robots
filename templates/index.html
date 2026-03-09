@@ -12,14 +12,13 @@
         <aside class="sidebar" id="mainSidebar">
             <div class="logo">QA<span>ROBOTS</span></div>
             <nav>
-                <button class="nav-btn active" onclick="setTab('codes')">Comparar Códigos</button>
+                <button class="nav-btn active" onclick="setTab('codes')">🔍 Auditoría de Código & IA</button>
                 <button class="nav-btn" onclick="setTab('results_comp')">Comparar Resultados</button>
                 <button class="nav-btn" onclick="setTab('dupes')">Validador Duplicados</button>
                 <button class="nav-btn" onclick="setTab('qa')">Validador QA</button>
                 <button class="nav-btn" onclick="setTab('extra')">Extractor StartUrls</button>
                 <div style="border-top: 1px solid var(--border); margin: 10px 0;"></div>
                 <button class="nav-btn" style="color: #00ff87;" onclick="setTab('api')">🚀 API Tester</button>
-                <button class="nav-btn" style="color: #bf87ff;" onclick="setTab('ai_train')">🧠 Doc & Dataset IA</button>
                 <div style="border-top: 1px solid var(--border); margin: 10px 0;"></div>
                 <button class="btn-secondary" onclick="clearAll()">🗑️ Limpiar Todo</button>
             </nav>
@@ -36,12 +35,12 @@
             <div class="input-area" id="inputContainer">
                 
                 <div class="input-box" id="boxA">
-                    <header class="box-header" id="labelA">Input A</header>
-                    <textarea id="jsonA" spellcheck="false" placeholder="Pega el código o JSON aquí..." oninput="autoDetectFields()"></textarea>
+                    <header class="box-header" id="labelA">Input A (Código Antiguo)</header>
+                    <textarea id="jsonA" spellcheck="false" placeholder="Pega el código o JSON antiguo aquí..." oninput="autoDetectFields()"></textarea>
                 </div>
                 <div class="input-box" id="boxB">
-                    <header class="box-header" id="labelB">Input B</header>
-                    <textarea id="jsonB" spellcheck="false" placeholder="Pega el código o JSON aquí..."></textarea>
+                    <header class="box-header" id="labelB">Input B (Código Nuevo)</header>
+                    <textarea id="jsonB" spellcheck="false" placeholder="Pega el código o JSON nuevo aquí..."></textarea>
                 </div>
 
                 <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
@@ -138,8 +137,10 @@
                     </div>
                 </div>
 
-                <div class="input-box" id="aiTrainPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                <div class="input-box" id="aiTrainPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 15px;">
                     <header class="box-header" style="color: #bf87ff; margin-bottom: 15px;">🧠 Documentación y Entrenamiento IA</header>
+                    <p style="color: #8b949e; font-size: 13px; margin-top: 0; margin-bottom: 15px;">💡 <b>Flujo Híbrido:</b> Verifica el diff visual de tus códigos arriba. Luego, llena estos campos para que la IA genere los metadatos basándose automáticamente en el <b>Input A</b> e <b>Input B</b>.</p>
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div class="form-group">
                             <label>URL de Búsqueda (StartUrl)</label>
@@ -148,14 +149,6 @@
                         <div class="form-group">
                             <label>Motivo de los cambios (Texto Crudo)</label>
                             <textarea id="aiRawReason" class="form-control" style="height: 40px; resize:vertical;"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Código Antiguo</label>
-                            <textarea id="aiOldCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Código Nuevo</label>
-                            <textarea id="aiNewCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea>
                         </div>
                     </div>
                     
@@ -171,7 +164,7 @@
                             <textarea id="aiGeneratedDocs" class="form-control" style="height: 250px; font-family: monospace; margin-top: 10px;" spellcheck="false"></textarea>
                         </div>
 
-                        <h4 style="color: var(--success); margin-top: 30px; border-top: 1px dashed var(--border); padding-top:20px;">✅ Metadatos para Dataset IA (Opcional)</h4>
+                        <h4 style="color: var(--success); margin-top: 30px; border-top: 1px dashed var(--border); padding-top:20px;">✅ Metadatos Básicos</h4>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
                             <div class="form-group">
                                 <label>Dominio</label>
@@ -196,6 +189,23 @@
                             <div id="aiConceptsContainer" style="margin-top: 10px;"></div>
                             <button class="btn-chip" style="margin-top:10px; border: 1px dashed #8b949e;" onclick="addConceptCard('', '')">➕ Añadir Manual</button>
                         </div>
+
+                        <h4 style="color: var(--warn); margin-top: 30px; border-top: 1px dashed var(--border); padding-top:20px;">🧠 Análisis Estructural para Dataset ML</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label>Problema Raíz Detectado</label>
+                                <textarea id="aiRootProblem" class="form-control" style="height: 60px; font-size: 13px;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Solución Algorítmica Aplicada</label>
+                                <textarea id="aiSolutionApplied" class="form-control" style="height: 60px; font-size: 13px;"></textarea>
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label>Patrón de Reparación</label>
+                                <input type="text" id="aiRepairPattern" class="form-control" placeholder="Ej: DOM Traversal, Evasión Anti-bot..." style="font-weight: bold; color: var(--warn);">
+                            </div>
+                        </div>
+
                         <button class="btn-primary" style="background: var(--success); color:#000; width: 100%; margin-top: 15px;" onclick="saveToDatabase()">💾 Guardar Dataset en Mongo</button>
                     </div>
                 </div>
@@ -203,7 +213,7 @@
             </div>
             
             <div class="toolbar" id="mainToolbar">
-                <button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS</button>
+                <button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS VISUAL</button>
             </div>
             
             <div class="output-panel" id="mainOutputPanel">
@@ -215,6 +225,6 @@
             </div>
         </main>
     </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=6"></script>
 </body>
 </html>

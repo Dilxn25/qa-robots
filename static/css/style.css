@@ -25,13 +25,13 @@ nav { display: flex; flex-direction: column; gap: 5px; flex: 1; }
 .box-header { font-size: 13px; font-weight: bold; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; }
 
 textarea { flex: 1; min-height: 250px; background: #010409; border: 1px solid var(--border); border-radius: 8px; color: #7ee787; font-family: monospace; padding: 15px; resize: vertical; outline: none; }
-textarea:focus { border-color: var(--accent); }
+textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); } /* Mejora sutil en foco */
 
 /* Formularios y Botones */
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 5px; font-weight: bold; }
-.form-control { width: 100%; padding: 10px; background: #010409; border: 1px solid var(--border); border-radius: 6px; color: var(--text); box-sizing: border-box; }
-.form-control:focus { border-color: var(--accent); outline: none; }
+.form-control { width: 100%; padding: 10px; background: #010409; border: 1px solid var(--border); border-radius: 6px; color: var(--text); box-sizing: border-box; transition: 0.2s; }
+.form-control:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 1px var(--accent); } /* Mejora sutil en foco */
 .check-label { display: flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; background: #21262d; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); transition: 0.2s; }
 .check-label:hover { background: #30363d; }
 input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 16px; height: 16px; }
@@ -39,6 +39,7 @@ input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 16
 .toolbar { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px; }
 .btn-primary { background: var(--accent); color: #000; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; }
 .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; } /* Útil cuando la IA está cargando */
 .btn-secondary { width: 100%; background: transparent; border: 1px solid var(--border); color: #8b949e; padding: 10px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
 .btn-secondary:hover { background: #21262d; color: white; }
 .btn-chip { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 12px; transition: 0.2s; }
@@ -91,6 +92,7 @@ input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 16
     .sidebar-overlay.open { display: block; }
     .toolbar { justify-content: center; }
 }
+
 /* Tarjetas de Conceptos IA */
 .concept-card { background: #161b22; border: 1px solid var(--accent); border-radius: 6px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; position: relative; }
 .concept-card input { background: #010409; border: 1px solid var(--border); color: var(--accent); padding: 8px; border-radius: 4px; font-size: 13px; font-weight: bold; width: 100%; outline: none; }
@@ -98,6 +100,7 @@ input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 16
 .concept-card input:focus, .concept-card textarea:focus { border-color: var(--accent); }
 .concept-card-delete { position: absolute; top: 10px; right: 10px; background: rgba(248, 81, 73, 0.2); color: var(--err); border: 1px solid var(--err); border-radius: 4px; cursor: pointer; padding: 4px 8px; font-size: 11px; font-weight: bold; transition: 0.2s; }
 .concept-card-delete:hover { background: var(--err); color: #fff; }
+
 /* ==================================================== */
 /* TABLAS DE RESUMEN DETALLADO                          */
 /* ==================================================== */
@@ -115,3 +118,9 @@ input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; width: 16
 
 .section-title { font-size: 14px; font-weight: bold; color: var(--accent); margin-bottom: 15px; margin-top: 0; text-transform: uppercase; border-bottom: 1px dashed var(--border); padding-bottom: 8px; display:flex; align-items:center; gap:8px;}
 .code-badge { background: #010409; padding: 6px 12px; border-radius: 6px; margin-right: 8px; font-size: 12px; display: inline-block; margin-bottom: 8px; border: 1px solid var(--border); }
+
+/* ==================================================== */
+/* UTILIDADES NUEVAS (IA ML DATASET & HÍBRIDO)          */
+/* ==================================================== */
+.tip-box { background: rgba(88, 166, 255, 0.05); border: 1px solid rgba(88, 166, 255, 0.2); border-left: 3px solid var(--accent); padding: 10px 15px; border-radius: 4px; color: #c9d1d9; font-size: 13px; margin-bottom: 15px; }
+.tip-box b { color: var(--accent); }
