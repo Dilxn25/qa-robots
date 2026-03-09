@@ -20,16 +20,13 @@ function copyOutput() {
     });
 }
 
-// --- ACTUALIZADO: Manejo de Pestañas a prueba de errores de carga ---
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
-    // Evita el error "event is not defined" cuando la página carga sola
     if (typeof event !== 'undefined' && event && event.target && event.target.classList) {
         event.target.classList.add('active');
     } else {
-        // En la carga inicial, busca el botón de la pestaña y lo marca
         const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(tab));
         if(activeBtn) activeBtn.classList.add('active');
     }
@@ -56,12 +53,16 @@ function setTab(tab) {
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
-    if (tab === 'codes') { labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; } 
+    if (tab === 'codes') { 
+        labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; 
+    } 
     else if (tab === 'results_comp') {
         labelA.innerText = "Input A (Crawler / Anteriores)"; labelB.innerText = "Input B (Updater / Nuevos)";
         compPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
     } 
-    else if (tab === 'dupes') { labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; } 
+    else if (tab === 'dupes') { 
+        labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; 
+    } 
     else if (tab === 'qa') {
         labelA.innerText = "Productos a Validar"; boxB.style.display = 'none'; qaPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
         toggleQaCrawlerFields();
@@ -69,8 +70,12 @@ function setTab(tab) {
     else if (tab === 'extra') {
         labelA.innerText = "JSON para Extraer URLs"; boxB.style.display = 'none'; extraPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
-    else if (tab === 'api') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; }
-    else if (tab === 'ai_train') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; }
+    else if (tab === 'api') { 
+        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; 
+    }
+    else if (tab === 'ai_train') { 
+        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; 
+    }
     
     autoDetectFields();
 }
@@ -84,8 +89,7 @@ function autoDetectFields() {
         
         const arr = Array.isArray(data) ? data : [data];
         let item = arr.find(i => i.Handled !== true && i.handled !== true) || arr[0];
-        
-        if (!item) return; // Evita crasheos si el array está vacío
+        if (!item) return;
 
         const keys = Object.keys(item).filter(k => k !== 'Handled' && k !== 'handled' && k !== 'Message');
 
@@ -121,7 +125,7 @@ function process() {
     const rawA = document.getElementById('jsonA').value.trim();
     const rawB = document.getElementById('jsonB').value.trim();
 
-    if (!rawA) { out.innerHTML = `<span class="err">❌ ERROR: El Input A está vacío.</span>`; return; }
+    if (!rawA) { out.innerHTML = `<span class="err" style="color:var(--err)">❌ ERROR: El Input A está vacío.</span>`; return; }
 
     if (currentTab === 'codes') {
         try { compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB)); } 
@@ -140,14 +144,13 @@ function process() {
         }
         document.getElementById('btnCopy').style.display = 'block';
     } catch(e) {
-        out.innerHTML = `<span class="err">❌ ERROR: Formato JSON inválido. (${e.message})</span>`;
+        out.innerHTML = `<span class="err" style="color:var(--err)">❌ ERROR: Formato JSON inválido. (${e.message})</span>`;
     }
 }
 
 // ====================================================
-// ================= QA Y COMPARADORES ================
+// COMPARAR CÓDIGOS
 // ====================================================
-
 function compareCodesJSON(a, b) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
     function deepCompare(obj1, obj2, path = "") {
@@ -167,11 +170,11 @@ function compareCodesJSON(a, b) {
             if (typeof v1 === 'object' && v1 !== null && typeof v2 === 'object' && v2 !== null) {
                 diffHtml += deepCompare(v1, v2, currentPath);
             } else if (v1 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="new" style="white-space:pre-wrap;">[+] NUEVO:\n${JSON.stringify(v2, null, 2)}</div></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--success); white-space:pre-wrap;">[+] NUEVO:\n${JSON.stringify(v2, null, 2)}</div></li>`;
             } else if (v2 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="old" style="white-space:pre-wrap;">[-] ELIMINADO:\n${JSON.stringify(v1, null, 2)}</div></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); white-space:pre-wrap;">[-] ELIMINADO:\n${JSON.stringify(v1, null, 2)}</div></li>`;
             } else {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div class="old" style="white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div class="new" style="white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); text-decoration:line-through; white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div style="color:var(--success); font-weight:bold; white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
             }
         });
         return diffHtml;
@@ -194,8 +197,8 @@ function compareCodesText(rawA, rawB) {
             diffs++;
             html += `<li class="diff-item" style="font-family:monospace; font-size:12px;">
                 <b style="color:var(--warn)">Línea ${i + 1}:</b> <br>
-                ${lA !== null ? `<div class="old" style="white-space:pre-wrap; word-break:break-all;">[-] ${lA || '(Línea vacía)'}</div>` : ''}
-                ${lB !== null ? `<div class="new" style="white-space:pre-wrap; word-break:break-all;">[+] ${lB || '(Línea vacía)'}</div>` : ''}
+                ${lA !== null ? `<div style="color:var(--err); white-space:pre-wrap; word-break:break-all;">[-] ${lA || '(Línea vacía)'}</div>` : ''}
+                ${lB !== null ? `<div style="color:var(--success); white-space:pre-wrap; word-break:break-all;">[+] ${lB || '(Línea vacía)'}</div>` : ''}
             </li>`;
         }
     }
@@ -203,6 +206,9 @@ function compareCodesText(rawA, rawB) {
     document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
+// ====================================================
+// NUEVO DISEÑO: COMPARADOR DE RESULTADOS
+// ====================================================
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
     const arrB = Array.isArray(listB) ? listB : [listB];
@@ -221,22 +227,23 @@ function compareResults(listA, listB) {
         if(item.ProductName) mapB_byName.set(String(item.ProductName).trim(), item);
     });
 
-    let handledCount = 0;
+    let handledCount = 0; let totalErrors = 0;
+    
     arrA.forEach((itemA, idx) => {
         if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } 
 
-        const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `POS_${idx}`;
+        const displayId = itemA.ProductId ? String(itemA.ProductId).trim() : `Posición_${idx}`;
         let itemErrors = [];
         let rawId = itemA.ProductId ? String(itemA.ProductId).trim() : null;
         let itemB = mapB_byID.get(rawId);
 
         if (!itemB && itemA.ProductName && mapB_byName.has(String(itemA.ProductName).trim())) {
             itemB = mapB_byName.get(String(itemA.ProductName).trim());
-            itemErrors.push(`⚠ [ID MODIFICADO] Crawler ID: ${rawId} ➡ Updater ID: ${itemB.ProductId}`);
+            itemErrors.push(`⚠ <b style="color:var(--accent)">[ID MODIFICADO]</b> Crawler: ${rawId} ➡ Updater: ${itemB.ProductId}`);
         }
 
         if (!itemB) {
-            itemErrors.push(`❌ [FALTANTE] No encontrado en la Comparación.`);
+            itemErrors.push(`❌ <b style="color:var(--err)">[FALTANTE]</b> No encontrado en la base de comparación (Input B).`);
             checkedFields.forEach(k => failsObj[k]++);
         } else {
             checkedFields.forEach(key => {
@@ -247,24 +254,42 @@ function compareResults(listA, listB) {
 
                 if (sA !== sB) {
                     failsObj[key]++;
-                    itemErrors.push(`↳ <b>${key}</b>: <span style="color:var(--err)">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
+                    itemErrors.push(`↳ <b style="color:var(--accent)">[${key}]</b> <span style="text-decoration:line-through; color:var(--err)">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
                 } else passesObj[key]++;
             });
         }
 
         if (itemErrors.length > 0) {
-            htmlDetails += `<div class="qa-item">
-                <b style="color:var(--warn)">ID Referencia: ${displayId}</b>
-                <ul style="color:var(--text); margin:5px 0; font-family:monospace;">${itemErrors.map(e => `<li style="margin-bottom:4px;">${e}</li>`).join('')}</ul>
+            totalErrors++;
+            htmlDetails += `
+            <div class="report-card err">
+                <div class="report-card-header">
+                    <strong style="color:var(--text); font-size:14px;">🏷️ Referencia: <span style="color:var(--accent)">${displayId}</span></strong>
+                    <span class="badge badge-err">${itemErrors.length} Diferencias</span>
+                </div>
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6;">
+                    ${itemErrors.map(e => `<li>${e}</li>`).join('')}
+                </ul>
             </div>`;
         }
     });
 
     if (compMode === 'updater') Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
 
-    const summaryJSON = { Failures: failsObj, Passes: passesObj, HandledIgnorados: handledCount };
-    const summaryHtml = `<pre class="summary-json">INFO  Comparación Crawler vs ${compMode === 'updater' ? 'Updater' : 'Crawler'}:\nINFO  ${JSON.stringify(summaryJSON, null, 2)}</pre>`;
-    document.getElementById('output').innerHTML = summaryHtml + (htmlDetails || "<h3 style='color:var(--success)'>✅ Todos los campos evaluados coinciden exactamente.</h3>");
+    const topHtml = `
+    <div class="stats-grid">
+        <div class="stat-box"><h3>${arrA.length}</h3><span>Total Input A</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${Object.values(passesObj).reduce((a,b)=>a+b,0)}</h3><span style="color:var(--success)">Campos Idénticos</span></div>
+        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
+    </div>`;
+
+    document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
+        <div style="text-align:center; padding: 40px;">
+            <div style="font-size: 40px; margin-bottom:10px;">✅</div>
+            <h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3>
+            <p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p>
+        </div>`);
 }
 
 function findDuplicates(data) {
@@ -275,19 +300,26 @@ function findDuplicates(data) {
     arr.forEach((i, idx) => {
         if (i.Handled === true || i.handled === true) return;
         let itemErrors = [];
-        const displayId = i.ProductId || `Posición JSON: ${idx}`;
+        const displayId = i.ProductId || `Posición_${idx}`;
 
         ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
             if (i[f]) {
                 const valStr = String(i[f]).trim();
-                if (seen[f].has(valStr)) itemErrors.push(`❌ <b>${f}</b> REPETIDO: <br><span style="color:#c9d1d9; font-size:12px;">${valStr}</span>`);
+                if (seen[f].has(valStr)) itemErrors.push(`<li><b style="color:var(--accent)">[${f}]</b> <span style="color:#c9d1d9;">${valStr}</span></li>`);
                 seen[f].add(valStr);
             }
         });
 
         if (itemErrors.length > 0) {
             hasDupes = true;
-            html += `<div class="dupe-card"><h4>🏷️ ID Referencia: <span style="color:var(--accent)">${displayId}</span></h4><div style="display:flex; flex-direction:column; gap:8px;">${itemErrors.join('')}</div></div>`;
+            html += `
+            <div class="report-card err">
+                <div class="report-card-header">
+                    <strong style="color:var(--text); font-size:14px;">🏷️ Referencia: <span style="color:var(--accent)">${displayId}</span></strong>
+                    <span class="badge badge-err">REPETIDO</span>
+                </div>
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px;">${itemErrors.join('')}</ul>
+            </div>`;
         }
     });
     document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>✅ El JSON está limpio, no hay duplicados.</h3>";
@@ -298,6 +330,9 @@ function toggleQaCrawlerFields() {
     document.getElementById('qaExcludeGroup').style.display = isCrawler ? 'block' : 'none';
 }
 
+// ====================================================
+// NUEVO DISEÑO: VALIDADOR QA
+// ====================================================
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
     let htmlDetails = '';
@@ -319,10 +354,12 @@ function runDynamicQA(data) {
     if(validItems.length > 0) Object.keys(validItems[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Excluidos: 0, Duplicates: 0 }; });
 
     let seenForDupes = {}; fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
+    let totalErrors = 0;
 
     validItems.forEach((item, idx) => {
         let itemErrors = [];
-        const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `POS_${idx}`;
+        const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `Posición_${idx}`;
+        let itemHasCriticalError = false;
 
         for (let key in item) {
             let val = item[key];
@@ -335,7 +372,7 @@ function runDynamicQA(data) {
                 const lowerVal = val.toLowerCase();
                 const foundWord = excludeWords.find(w => lowerVal.includes(w));
                 if (foundWord) {
-                    itemErrors.push(`[Excluido] ${key} contiene palabra prohibida: '${foundWord}'`);
+                    itemErrors.push(`[Excluido] <b style="color:var(--accent)">${key}</b> contiene palabra prohibida: '${foundWord}'`);
                     fieldExcluded = true; fieldFailed = true;
                 }
             }
@@ -343,26 +380,26 @@ function runDynamicQA(data) {
             if (key === 'Codes') {
                 let totalC = 0;
                 for (let c in val) { if (val[c] && val[c] !== 0 && val[c] !== "0") { totalC++; if(stats.Codes[c] !== undefined) stats.Codes[c]++; else stats.Codes.OTHERCode++; } }
-                if (expRobot === 'Crawler' && totalC === 0) itemErrors.push(`[Codes] Crawler sin códigos.`);
+                if (expRobot === 'Crawler' && totalC === 0) { itemErrors.push(`[Códigos Faltantes] Crawler sin códigos válidos.`); itemHasCriticalError = true; }
             } 
             else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
             else if (NUMBER_FIELDS.includes(key)) { 
-                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; } 
+                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[Formato Inválido] <b style="color:var(--accent)">${key}</b> debe ser Número.`); fieldFailed = true; itemHasCriticalError = true; } 
             } else { 
-                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; } 
+                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[Formato Inválido] <b style="color:var(--accent)">${key}</b> debe ser Texto.`); fieldFailed = true; itemHasCriticalError = true; } 
             }
 
-            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Fabricante] Esperado: ${expManu}`); fieldFailed = true; }
-            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[URL] Base incorrecta.`); fieldFailed = true; }
-            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Imagen] Base incorrecta.`); fieldFailed = true; }
-            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Crawler] No debe tener Ratings.`); fieldWarn = true; }
-            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Updater] Faltan campos actualizables.`); fieldWarn = true; }
+            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">Fabricante</b> esperado: ${expManu}`); fieldFailed = true; }
+            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">URL</b> base incorrecta.`); fieldFailed = true; itemHasCriticalError = true; }
+            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">Imagen</b> base incorrecta.`); fieldFailed = true; }
+            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Alerta] <b style="color:var(--warn)">Crawler</b> no debe tener Ratings.`); fieldWarn = true; }
+            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Alerta] <b style="color:var(--warn)">Updater</b> sin campos actualizables.`); fieldWarn = true; }
 
             if (fieldsToDupCheck.includes(key) && val) {
                 const valStr = String(val).trim();
                 if (seenForDupes[key].has(valStr)) {
-                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`);
-                    stats.Fields[key].Duplicates++; fieldFailed = true;
+                    itemErrors.push(`[Duplicado] <b style="color:var(--accent)">${key}</b> repetido: ${valStr}`);
+                    stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true;
                 } else seenForDupes[key].add(valStr);
             }
 
@@ -373,28 +410,87 @@ function runDynamicQA(data) {
                 else stats.Fields[key].Pass++;
             }
         }
-        if (itemErrors.length > 0) htmlDetails += `<div class="qa-item"><b style="color:var(--err)">ID: ${id}</b><ul style="color:var(--err); margin:5px 0;">${itemErrors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
+        if (itemErrors.length > 0) {
+            totalErrors++;
+            const cardClass = itemHasCriticalError ? "err" : "warn";
+            const badgeClass = itemHasCriticalError ? "badge-err" : "badge-warn";
+            htmlDetails += `
+            <div class="report-card ${cardClass}">
+                <div class="report-card-header">
+                    <strong style="color:var(--text); font-size:14px;">🏷️ Producto: <span style="color:var(--accent)">${id}</span></strong>
+                    <span class="badge ${badgeClass}">${itemErrors.length} Observaciones</span>
+                </div>
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height: 1.6;">
+                    ${itemErrors.map(e => `<li>${e}</li>`).join('')}
+                </ul>
+            </div>`;
+        }
     });
 
-    const summaryObject = { TotalRecibidos: arr.length, HandledIgnorados: handledCount, TotalAnalizados: validItems.length, Fields: Object.values(stats.Fields), Codes: stats.Codes, Other: stats.Other };
-    const topHtml = `<pre class="summary-json">INFO  Summary results:\nINFO  ${JSON.stringify(summaryObject, null, 2)}\nINFO  QA Validation Complete</pre>`;
-    document.getElementById('output').innerHTML = topHtml + htmlDetails;
+    const topHtml = `
+    <div class="stats-grid">
+        <div class="stat-box"><h3>${arr.length}</h3><span>Total Json</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${validItems.length}</h3><span style="color:var(--success)">Analizados</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
+        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
+    </div>`;
+
+    document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
+        <div style="text-align:center; padding: 40px;">
+            <div style="font-size: 40px; margin-bottom:10px;">🌟</div>
+            <h3 style="color:var(--success); margin:0;">Validación QA Exitosa</h3>
+            <p style="color:#8b949e;">No se encontraron errores ni advertencias en los datos.</p>
+        </div>`);
 }
 
+// ====================================================
+// EXTRACTOR STARTURLS (CON ALEATORIO Y SIN REPETIDOS)
+// ====================================================
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
-    let validItems = []; let handledCount = 0;
+    let handledCount = 0;
+    
+    // 1. Filtrar Handled y URLs únicas
+    let seenUrls = new Set();
+    let validItems = [];
 
-    arr.forEach(i => { 
-        if (i.Handled === true || i.handled === true) handledCount++; 
-        else validItems.push(i); 
+    arr.forEach(i => {
+        if (i.Handled === true || i.handled === true) { 
+            handledCount++; 
+            return; 
+        }
+        
+        // Buscar la URL del item para asegurar que no se repita
+        const url = i.ProductUrl || i.Url || i.url;
+        if (url) {
+            const cleanUrl = String(url).trim();
+            if (!seenUrls.has(cleanUrl)) {
+                seenUrls.add(cleanUrl);
+                validItems.push(i);
+            }
+        } else {
+            // Si por alguna razón no tiene campo URL, lo agregamos igual
+            validItems.push(i);
+        }
     });
 
+    const totalSinRepetidos = validItems.length;
+
+    // 2. Barajar la lista aleatoriamente (Algoritmo Fisher-Yates)
+    for (let i = validItems.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [validItems[i], validItems[j]] = [validItems[j], validItems[i]];
+    }
+
+    // 3. Aplicar límites
     const selectAll = document.getElementById('extAll').checked;
     const limitInput = parseInt(document.getElementById('extLimit').value);
     const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
+    
+    // 4. Cortar
     const finalItems = validItems.slice(0, limit);
 
+    // 5. Mapear al formato Apify
     const result = finalItems.map(i => {
         let uData = {};
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
@@ -402,19 +498,22 @@ function runExtraction(data) {
         return { url: finalUrl, userData: uData, method: "GET" };
     });
 
-    const reportHtml = `<div style="color:var(--warning); font-weight:bold; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
-        📊 RESULTADOS DE EXTRACCIÓN: <br>
-        <span style="color:#c9d1d9; font-weight:normal;">Total Original: ${arr.length} | Handled descartados: ${handledCount} | Extraídos para el JSON: ${finalItems.length}</span>
+    // 6. Reporte Visual Nuevo
+    const reportHtml = `
+    <div class="stats-grid">
+        <div class="stat-box"><h3>${arr.length}</h3><span>Total Original</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
+        <div class="stat-box" style="border-color:var(--accent)"><h3>${arr.length - handledCount - totalSinRepetidos}</h3><span style="color:var(--accent)">Duplicados Borrados</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${finalItems.length}</h3><span style="color:var(--success)">Extraídos (Aleatorios)</span></div>
     </div>`;
 
     const outputJSON = { "startUrls": result };
-    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json">${JSON.stringify(outputJSON, null, 4)}</pre>`;
+    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json" style="margin-top:0;">${JSON.stringify(outputJSON, null, 4)}</pre>`;
 }
 
 // ====================================================
-// ================= API TESTER LOGIC =================
+// API TESTER LOGIC
 // ====================================================
-
 function switchApiTab(tabId) {
     document.querySelectorAll('.api-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.api-tab-content').forEach(content => content.classList.remove('active'));
@@ -449,10 +548,7 @@ function importCurlPrompt() {
             document.getElementById('apiBodyInput').value = dataMatch[1];
             if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; 
         }
-        
-    } catch(e) {
-        alert("Error procesando cURL: " + e.message);
-    }
+    } catch(e) { alert("Error procesando cURL: " + e.message); }
 }
 
 async function sendApiRequest() {
@@ -466,32 +562,25 @@ async function sendApiRequest() {
     if (!url) { alert("Ingresa una URL válida"); return; }
 
     let headers = {};
-    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } 
-    catch(e) { alert("Formato de Headers inválido. Debe ser JSON."); return; }
+    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } catch(e) { alert("Formato de Headers inválido. Debe ser JSON."); return; }
 
     const options = { method, headers };
     if (method !== 'GET' && method !== 'HEAD' && rawBody) options.body = rawBody;
 
-    statusOut.innerText = "Enviando...";
-    statusOut.style.color = "var(--warn)";
-    responseOut.value = "Cargando...";
-
+    statusOut.innerText = "Enviando..."; statusOut.style.color = "var(--warn)"; responseOut.value = "Cargando...";
     const startTime = performance.now();
 
     try {
         const response = await fetch(url, options);
         const time = Math.round(performance.now() - startTime);
-        
         let color = response.ok ? "var(--success)" : "var(--err)";
         statusOut.innerHTML = `<span style="color:${color}">${response.status} ${response.statusText}</span> <span style="margin-left:10px; color:#8b949e;">⏱️ ${time}ms</span>`;
 
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-            const json = await response.json();
-            responseOut.value = JSON.stringify(json, null, 4);
+            const json = await response.json(); responseOut.value = JSON.stringify(json, null, 4);
         } else {
-            const text = await response.text();
-            responseOut.value = text;
+            const text = await response.text(); responseOut.value = text;
         }
     } catch (e) {
         statusOut.innerHTML = `<span style="color:var(--err)">Error de Red</span>`;
@@ -505,7 +594,9 @@ function clearAll() {
     document.getElementById('btnCopy').style.display = 'none';
 }
 
-// --- CONEXIÓN REAL A LA IA DE GOOGLE ---
+// ====================================================
+// IA Y MONGODB (CON MEJOR CAPTURA DE ERRORES)
+// ====================================================
 async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
     const rawReason = document.getElementById('aiRawReason').value.trim();
@@ -523,7 +614,11 @@ async function extractAIMetadata() {
             body: JSON.stringify({ url: url, reason: rawReason, code: code })
         });
 
-        if (!response.ok) throw new Error("Fallo en la API de IA");
+        // ¡AQUÍ CAPTURAMOS EL ERROR EXACTO DE PYTHON/GEMINI!
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Error desconocido en el servidor");
+        }
         
         const aiData = await response.json();
 
@@ -535,14 +630,13 @@ async function extractAIMetadata() {
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
     } catch (e) {
-        alert("Error consultando a Gemini: " + e.message);
+        alert("Error de la IA: " + e.message);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
 
-// --- GUARDAR EN MONGODB ATLAS ---
 async function saveToDatabase() {
     const btn = event.target;
     const originalText = btn.innerHTML;
@@ -580,20 +674,16 @@ async function saveToDatabase() {
         if (response.ok) {
             btn.innerHTML = "✅ ¡Guardado Exitosamente!";
             btn.style.background = "#2ea043";
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.style.background = "var(--success)";
-                btn.disabled = false;
-            }, 3000);
+            setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000);
         } else {
-            throw new Error("Error en el servidor");
+            const errData = await response.json();
+            throw new Error(errData.error || "Error al conectar con la base de datos");
         }
     } catch (e) {
-        alert("No se pudo guardar en Mongo: " + e.message);
+        alert("Error de Mongo: " + e.message);
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
 
-// Inicia en la pestaña de códigos
 setTab('codes');
