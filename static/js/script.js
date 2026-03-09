@@ -20,11 +20,20 @@ function copyOutput() {
     });
 }
 
-// --- Manejo de Pestañas ---
+// --- ACTUALIZADO: Manejo de Pestañas a prueba de errores de carga ---
 function setTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    if (event && event.target) event.target.classList.add('active');
+    
+    // Evita el error "event is not defined" cuando la página carga sola
+    if (typeof event !== 'undefined' && event && event.target && event.target.classList) {
+        event.target.classList.add('active');
+    } else {
+        // En la carga inicial, busca el botón de la pestaña y lo marca
+        const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(tab));
+        if(activeBtn) activeBtn.classList.add('active');
+    }
+
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
@@ -47,16 +56,12 @@ function setTab(tab) {
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
-    if (tab === 'codes') { 
-        labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; 
-    } 
+    if (tab === 'codes') { labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; } 
     else if (tab === 'results_comp') {
         labelA.innerText = "Input A (Crawler / Anteriores)"; labelB.innerText = "Input B (Updater / Nuevos)";
         compPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
     } 
-    else if (tab === 'dupes') { 
-        labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; 
-    } 
+    else if (tab === 'dupes') { labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; } 
     else if (tab === 'qa') {
         labelA.innerText = "Productos a Validar"; boxB.style.display = 'none'; qaPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
         toggleQaCrawlerFields();
@@ -64,12 +69,8 @@ function setTab(tab) {
     else if (tab === 'extra') {
         labelA.innerText = "JSON para Extraer URLs"; boxB.style.display = 'none'; extraPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
     }
-    else if (tab === 'api') { 
-        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; 
-    }
-    else if (tab === 'ai_train') { 
-        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; 
-    }
+    else if (tab === 'api') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; }
+    else if (tab === 'ai_train') { boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; }
     
     autoDetectFields();
 }
@@ -83,6 +84,9 @@ function autoDetectFields() {
         
         const arr = Array.isArray(data) ? data : [data];
         let item = arr.find(i => i.Handled !== true && i.handled !== true) || arr[0];
+        
+        if (!item) return; // Evita crasheos si el array está vacío
+
         const keys = Object.keys(item).filter(k => k !== 'Handled' && k !== 'handled' && k !== 'Message');
 
         if (currentTab === 'qa') {
@@ -120,11 +124,8 @@ function process() {
     if (!rawA) { out.innerHTML = `<span class="err">❌ ERROR: El Input A está vacío.</span>`; return; }
 
     if (currentTab === 'codes') {
-        try {
-            compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB));
-        } catch(e) {
-            compareCodesText(rawA, rawB);
-        }
+        try { compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB)); } 
+        catch(e) { compareCodesText(rawA, rawB); }
         document.getElementById('btnCopy').style.display = 'block';
         return;
     }
