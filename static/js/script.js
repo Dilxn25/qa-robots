@@ -14,7 +14,7 @@ function copyOutput() {
     navigator.clipboard.writeText(textToCopy).then(() => {
         const btn = document.getElementById('btnCopy');
         const originalText = btn.innerHTML;
-        btn.innerHTML = '✅ ¡Copiado!';
+        btn.innerHTML = '¡Copiado!';
         btn.style.background = 'var(--success)';
         setTimeout(() => { btn.innerHTML = originalText; btn.style.background = 'var(--accent)'; }, 2000);
     });
@@ -125,7 +125,7 @@ function process() {
     const rawA = document.getElementById('jsonA').value.trim();
     const rawB = document.getElementById('jsonB').value.trim();
 
-    if (!rawA) { out.innerHTML = `<span class="err" style="color:var(--err)">❌ ERROR: El Input A está vacío.</span>`; return; }
+    if (!rawA) { out.innerHTML = `<span class="err" style="color:var(--err)">[ERROR] El Input A está vacío.</span>`; return; }
 
     if (currentTab === 'codes') {
         try { compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB)); } 
@@ -144,12 +144,12 @@ function process() {
         }
         document.getElementById('btnCopy').style.display = 'block';
     } catch(e) {
-        out.innerHTML = `<span class="err" style="color:var(--err)">❌ ERROR: Formato JSON inválido. (${e.message})</span>`;
+        out.innerHTML = `<span class="err" style="color:var(--err)">[ERROR] Formato JSON inválido. (${e.message})</span>`;
     }
 }
 
 // ====================================================
-// COMPARAR CÓDIGOS
+// COMPARADORES DE CÓDIGOS
 // ====================================================
 function compareCodesJSON(a, b) {
     let html = '<ul style="list-style:none; padding:0; margin:0;">';
@@ -174,13 +174,13 @@ function compareCodesJSON(a, b) {
             } else if (v2 === undefined) {
                 diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); white-space:pre-wrap;">[-] ELIMINADO:\n${JSON.stringify(v1, null, 2)}</div></li>`;
             } else {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); text-decoration:line-through; white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div style="color:var(--success); font-weight:bold; white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
+                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div style="color:var(--success); font-weight:bold; white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
             }
         });
         return diffHtml;
     }
     const differences = deepCompare(a, b);
-    document.getElementById('output').innerHTML = differences ? html + differences + '</ul>' : '<h3 style="color:var(--success)">✅ Configuraciones idénticas.</h3>';
+    document.getElementById('output').innerHTML = differences ? html + differences + '</ul>' : '<h3 style="color:var(--success)">Configuraciones idénticas.</h3>';
 }
 
 function compareCodesText(rawA, rawB) {
@@ -203,11 +203,11 @@ function compareCodesText(rawA, rawB) {
         }
     }
     const summary = `<div class="summary-json">INFO  Análisis de Código JS detectado.\nINFO  Se encontraron ${diffs} líneas modificadas.</div>`;
-    document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
+    document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">El código es exactamente idéntico.</h3>';
 }
 
 // ====================================================
-// NUEVO DISEÑO: COMPARADOR DE RESULTADOS
+// COMPARADOR DE RESULTADOS
 // ====================================================
 function compareResults(listA, listB) {
     const arrA = Array.isArray(listA) ? listA : [listA];
@@ -239,11 +239,11 @@ function compareResults(listA, listB) {
 
         if (!itemB && itemA.ProductName && mapB_byName.has(String(itemA.ProductName).trim())) {
             itemB = mapB_byName.get(String(itemA.ProductName).trim());
-            itemErrors.push(`⚠ <b style="color:var(--accent)">[ID MODIFICADO]</b> Crawler: ${rawId} ➡ Updater: ${itemB.ProductId}`);
+            itemErrors.push(`[ID MODIFICADO] Crawler: ${rawId} -> Updater: ${itemB.ProductId}`);
         }
 
         if (!itemB) {
-            itemErrors.push(`❌ <b style="color:var(--err)">[FALTANTE]</b> No encontrado en la base de comparación (Input B).`);
+            itemErrors.push(`[FALTANTE] No encontrado en la base de comparación.`);
             checkedFields.forEach(k => failsObj[k]++);
         } else {
             checkedFields.forEach(key => {
@@ -254,7 +254,7 @@ function compareResults(listA, listB) {
 
                 if (sA !== sB) {
                     failsObj[key]++;
-                    itemErrors.push(`↳ <b style="color:var(--accent)">[${key}]</b> <span style="text-decoration:line-through; color:var(--err)">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
+                    itemErrors.push(`[${key}] <span style="color:var(--err)">${sA}</span> -> <span style="color:var(--success)">${sB}</span>`);
                 } else passesObj[key]++;
             });
         }
@@ -264,10 +264,10 @@ function compareResults(listA, listB) {
             htmlDetails += `
             <div class="report-card err">
                 <div class="report-card-header">
-                    <strong style="color:var(--text); font-size:14px;">🏷️ Referencia: <span style="color:var(--accent)">${displayId}</span></strong>
+                    <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
                     <span class="badge badge-err">${itemErrors.length} Diferencias</span>
                 </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6;">
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6; list-style-type: square;">
                     ${itemErrors.map(e => `<li>${e}</li>`).join('')}
                 </ul>
             </div>`;
@@ -286,12 +286,14 @@ function compareResults(listA, listB) {
 
     document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
         <div style="text-align:center; padding: 40px;">
-            <div style="font-size: 40px; margin-bottom:10px;">✅</div>
             <h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3>
             <p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p>
         </div>`);
 }
 
+// ====================================================
+// BUSCAR DUPLICADOS
+// ====================================================
 function findDuplicates(data) {
     const arr = Array.isArray(data) ? data : [data];
     const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
@@ -315,14 +317,14 @@ function findDuplicates(data) {
             html += `
             <div class="report-card err">
                 <div class="report-card-header">
-                    <strong style="color:var(--text); font-size:14px;">🏷️ Referencia: <span style="color:var(--accent)">${displayId}</span></strong>
+                    <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
                     <span class="badge badge-err">REPETIDO</span>
                 </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px;">${itemErrors.join('')}</ul>
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; list-style-type: square;">${itemErrors.join('')}</ul>
             </div>`;
         }
     });
-    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>✅ El JSON está limpio, no hay duplicados.</h3>";
+    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>El JSON está limpio, no hay duplicados.</h3>";
 }
 
 function toggleQaCrawlerFields() {
@@ -331,7 +333,7 @@ function toggleQaCrawlerFields() {
 }
 
 // ====================================================
-// NUEVO DISEÑO: VALIDADOR QA
+// VALIDADOR QA
 // ====================================================
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
@@ -372,7 +374,7 @@ function runDynamicQA(data) {
                 const lowerVal = val.toLowerCase();
                 const foundWord = excludeWords.find(w => lowerVal.includes(w));
                 if (foundWord) {
-                    itemErrors.push(`[Excluido] <b style="color:var(--accent)">${key}</b> contiene palabra prohibida: '${foundWord}'`);
+                    itemErrors.push(`[Excluido] ${key} contiene palabra prohibida: '${foundWord}'`);
                     fieldExcluded = true; fieldFailed = true;
                 }
             }
@@ -384,21 +386,21 @@ function runDynamicQA(data) {
             } 
             else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
             else if (NUMBER_FIELDS.includes(key)) { 
-                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[Formato Inválido] <b style="color:var(--accent)">${key}</b> debe ser Número.`); fieldFailed = true; itemHasCriticalError = true; } 
+                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[Formato Inválido] ${key} debe ser Número.`); fieldFailed = true; itemHasCriticalError = true; } 
             } else { 
-                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[Formato Inválido] <b style="color:var(--accent)">${key}</b> debe ser Texto.`); fieldFailed = true; itemHasCriticalError = true; } 
+                if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[Formato Inválido] ${key} debe ser Texto.`); fieldFailed = true; itemHasCriticalError = true; } 
             }
 
-            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">Fabricante</b> esperado: ${expManu}`); fieldFailed = true; }
-            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">URL</b> base incorrecta.`); fieldFailed = true; itemHasCriticalError = true; }
-            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Validación Regex] <b style="color:var(--accent)">Imagen</b> base incorrecta.`); fieldFailed = true; }
-            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Alerta] <b style="color:var(--warn)">Crawler</b> no debe tener Ratings.`); fieldWarn = true; }
-            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Alerta] <b style="color:var(--warn)">Updater</b> sin campos actualizables.`); fieldWarn = true; }
+            if (key === 'Manufacturer' && expManu && val && !(new RegExp(expManu, 'i')).test(String(val))) { itemErrors.push(`[Validación Regex] Fabricante esperado: ${expManu}`); fieldFailed = true; }
+            if (key === 'ProductUrl' && expUrl && val && !String(val).includes(expUrl)) { itemErrors.push(`[Validación Regex] URL base incorrecta.`); fieldFailed = true; itemHasCriticalError = true; }
+            if (key === 'ImageUri' && expImg && val && !String(val).includes(expImg)) { itemErrors.push(`[Validación Regex] Imagen base incorrecta.`); fieldFailed = true; }
+            if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Alerta] Crawler no debe tener Ratings.`); fieldWarn = true; }
+            if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Alerta] Updater sin campos actualizables.`); fieldWarn = true; }
 
             if (fieldsToDupCheck.includes(key) && val) {
                 const valStr = String(val).trim();
                 if (seenForDupes[key].has(valStr)) {
-                    itemErrors.push(`[Duplicado] <b style="color:var(--accent)">${key}</b> repetido: ${valStr}`);
+                    itemErrors.push(`[Duplicado] ${key} repetido: ${valStr}`);
                     stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true;
                 } else seenForDupes[key].add(valStr);
             }
@@ -417,10 +419,10 @@ function runDynamicQA(data) {
             htmlDetails += `
             <div class="report-card ${cardClass}">
                 <div class="report-card-header">
-                    <strong style="color:var(--text); font-size:14px;">🏷️ Producto: <span style="color:var(--accent)">${id}</span></strong>
+                    <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${id}</span></strong>
                     <span class="badge ${badgeClass}">${itemErrors.length} Observaciones</span>
                 </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height: 1.6;">
+                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; line-height: 1.6; list-style-type: square;">
                     ${itemErrors.map(e => `<li>${e}</li>`).join('')}
                 </ul>
             </div>`;
@@ -437,20 +439,17 @@ function runDynamicQA(data) {
 
     document.getElementById('output').innerHTML = topHtml + (htmlDetails || `
         <div style="text-align:center; padding: 40px;">
-            <div style="font-size: 40px; margin-bottom:10px;">🌟</div>
             <h3 style="color:var(--success); margin:0;">Validación QA Exitosa</h3>
             <p style="color:#8b949e;">No se encontraron errores ni advertencias en los datos.</p>
         </div>`);
 }
 
 // ====================================================
-// EXTRACTOR STARTURLS (CON ALEATORIO Y SIN REPETIDOS)
+// EXTRACTOR STARTURLS
 // ====================================================
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
     let handledCount = 0;
-    
-    // 1. Filtrar Handled y URLs únicas
     let seenUrls = new Set();
     let validItems = [];
 
@@ -459,8 +458,6 @@ function runExtraction(data) {
             handledCount++; 
             return; 
         }
-        
-        // Buscar la URL del item para asegurar que no se repita
         const url = i.ProductUrl || i.Url || i.url;
         if (url) {
             const cleanUrl = String(url).trim();
@@ -469,28 +466,22 @@ function runExtraction(data) {
                 validItems.push(i);
             }
         } else {
-            // Si por alguna razón no tiene campo URL, lo agregamos igual
             validItems.push(i);
         }
     });
 
     const totalSinRepetidos = validItems.length;
 
-    // 2. Barajar la lista aleatoriamente (Algoritmo Fisher-Yates)
     for (let i = validItems.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [validItems[i], validItems[j]] = [validItems[j], validItems[i]];
     }
 
-    // 3. Aplicar límites
     const selectAll = document.getElementById('extAll').checked;
     const limitInput = parseInt(document.getElementById('extLimit').value);
     const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
-    
-    // 4. Cortar
     const finalItems = validItems.slice(0, limit);
 
-    // 5. Mapear al formato Apify
     const result = finalItems.map(i => {
         let uData = {};
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
@@ -498,7 +489,6 @@ function runExtraction(data) {
         return { url: finalUrl, userData: uData, method: "GET" };
     });
 
-    // 6. Reporte Visual Nuevo
     const reportHtml = `
     <div class="stats-grid">
         <div class="stat-box"><h3>${arr.length}</h3><span>Total Original</span></div>
@@ -595,7 +585,7 @@ function clearAll() {
 }
 
 // ====================================================
-// IA Y MONGODB (CON MEJOR CAPTURA DE ERRORES)
+// IA Y MONGODB CON MANEJO DE ERRORES REAL
 // ====================================================
 async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
@@ -604,7 +594,7 @@ async function extractAIMetadata() {
 
     const btn = event.target;
     const originalText = btn.innerHTML;
-    btn.innerHTML = "⏳ La IA está analizando...";
+    btn.innerHTML = "La IA está analizando...";
     btn.disabled = true;
 
     try {
@@ -614,13 +604,22 @@ async function extractAIMetadata() {
             body: JSON.stringify({ url: url, reason: rawReason, code: code })
         });
 
-        // ¡AQUÍ CAPTURAMOS EL ERROR EXACTO DE PYTHON/GEMINI!
+        // Leemos como texto primero para evitar el error de JSON vacío
+        const textData = await response.text(); 
+        
         if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Error desconocido en el servidor");
+            let errorMsg = "Error del servidor de Render.";
+            try {
+                const errJson = JSON.parse(textData);
+                errorMsg = errJson.error || errorMsg;
+            } catch(parseError) {
+                // Si entra aquí, Python falló catastróficamente (Ej: Clave API inválida y tiró error 500 HTML)
+                errorMsg = textData || "El servidor falló sin enviar datos. Revisa la consola de Render.";
+            }
+            throw new Error(errorMsg);
         }
         
-        const aiData = await response.json();
+        const aiData = JSON.parse(textData);
 
         document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
@@ -630,7 +629,7 @@ async function extractAIMetadata() {
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
     } catch (e) {
-        alert("Error de la IA: " + e.message);
+        alert("Fallo en la IA: \n" + e.message);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -640,7 +639,7 @@ async function extractAIMetadata() {
 async function saveToDatabase() {
     const btn = event.target;
     const originalText = btn.innerHTML;
-    btn.innerHTML = "💾 Guardando en MongoDB...";
+    btn.innerHTML = "Guardando en MongoDB...";
     btn.disabled = true;
 
     const payload = {
@@ -671,13 +670,16 @@ async function saveToDatabase() {
             body: JSON.stringify(payload)
         });
 
+        const textData = await response.text();
+
         if (response.ok) {
-            btn.innerHTML = "✅ ¡Guardado Exitosamente!";
+            btn.innerHTML = "¡Guardado Exitosamente!";
             btn.style.background = "#2ea043";
             setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000);
         } else {
-            const errData = await response.json();
-            throw new Error(errData.error || "Error al conectar con la base de datos");
+            let errorMsg = "Error en Base de Datos";
+            try { errorMsg = JSON.parse(textData).error; } catch(e) { errorMsg = textData; }
+            throw new Error(errorMsg);
         }
     } catch (e) {
         alert("Error de Mongo: " + e.message);
