@@ -76,6 +76,50 @@
                     <div class="form-group" style="margin-top: 20px;"><label>Incluir en UserData:</label><div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div></div>
                 </div>
 
+                <div class="input-box" id="apiTesterPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                        <header class="box-header" style="color: #00ff87; margin:0;">🚀 API Tester</header>
+                        <button class="btn-chip" onclick="importCurlPrompt()">📥 Importar cURL (bash)</button>
+                    </div>
+                    
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 15px;">
+                        <i>Nota: Si la API externa no tiene habilitado CORS, el navegador bloqueará la petición.</i>
+                    </div>
+
+                    <div class="api-url-bar">
+                        <select id="apiMethod" class="form-control" style="width: 120px; font-weight: bold; color: var(--accent);">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                            <option value="PATCH">PATCH</option>
+                        </select>
+                        <input type="text" id="apiUrl" class="form-control" placeholder="https://api.example.com/v1/data">
+                        <button class="btn-primary" style="background: #00ff87; color:#000;" onclick="sendApiRequest()">Enviar</button>
+                    </div>
+
+                    <div class="api-tabs">
+                        <button class="api-tab-btn active" onclick="switchApiTab('apiHeaders')">Headers</button>
+                        <button class="api-tab-btn" onclick="switchApiTab('apiBody')">Body (Raw / JSON)</button>
+                    </div>
+
+                    <div id="apiHeaders" class="api-tab-content active">
+                        <textarea id="apiHeadersInput" class="form-control" style="height: 100px; font-family: monospace;" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer TOKEN"}'></textarea>
+                    </div>
+
+                    <div id="apiBody" class="api-tab-content">
+                        <textarea id="apiBodyInput" class="form-control" style="height: 200px; font-family: monospace;" placeholder='{ "key": "value" }'></textarea>
+                    </div>
+
+                    <div class="api-response-area" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="color:#8b949e; font-weight:bold;">Respuesta:</span>
+                            <span id="apiStatus" style="font-family:monospace; font-size:13px; font-weight:bold; color:var(--text);">Esperando petición...</span>
+                        </div>
+                        <textarea id="apiResponseOutput" class="form-control" style="height: 300px; background: #010409; color: #7ee787;" readonly placeholder="El resultado de la API aparecerá aquí..."></textarea>
+                    </div>
+                </div>
+
                 <div class="input-box" id="aiTrainPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #bf87ff; margin-bottom: 15px;">🧠 Creador de Dataset para IA</header>
                     
@@ -112,7 +156,7 @@
                             <label>Conceptos Clave Extraídos (Separados por |)</label>
                             <input type="text" id="aiFinalReasons" class="form-control" placeholder="Ej: Migración a Puppeteer | Evasión Antibot">
                         </div>
-                        <button class="btn-primary" style="background: var(--success); width: 100%;" onclick="saveToDatabase()">💾 Guardar en Base de Datos Oficial</button>
+                        <button class="btn-primary" style="background: var(--success); color:#000; width: 100%;" onclick="saveToDatabase()">💾 Guardar en Base de Datos Oficial</button>
                     </div>
                 </div>
 
@@ -128,6 +172,6 @@
             </div>
         </main>
     </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=3"></script>
 </body>
 </html>
