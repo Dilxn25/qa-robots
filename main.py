@@ -80,14 +80,9 @@ IMPORTANTE PARA FORMATO: Escapa correctamente todos los saltos de línea (usa \\
 """
     
     try:
-        # Forzamos la respuesta nativa en JSON para evitar errores de parseo
-        response = model.generate_content(
-            prompt, 
-            generation_config={"response_mime_type": "application/json"}
-        )
-        
-        # Como forzamos application/json, el texto ya viene limpio sin bloques de código Markdown alrededor
-        resultado = json.loads(response.text)
+        response = model.generate_content(prompt)
+        clean_text = response.text.replace('```json', '').replace('```', '').strip()
+        resultado = json.loads(clean_text)
         return jsonify(resultado)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
