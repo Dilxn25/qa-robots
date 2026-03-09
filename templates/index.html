@@ -19,7 +19,7 @@
                 <button class="nav-btn" onclick="setTab('extra')">Extractor StartUrls</button>
                 <div style="border-top: 1px solid var(--border); margin: 10px 0;"></div>
                 <button class="nav-btn" style="color: #00ff87;" onclick="setTab('api')">🚀 API Tester</button>
-                <button class="nav-btn" style="color: #bf87ff;" onclick="setTab('ai_train')">🧠 Entrenamiento IA</button>
+                <button class="nav-btn" style="color: #bf87ff;" onclick="setTab('ai_train')">🧠 Doc & Dataset IA</button>
                 <div style="border-top: 1px solid var(--border); margin: 10px 0;"></div>
                 <button class="btn-secondary" onclick="clearAll()">🗑️ Limpiar Todo</button>
             </nav>
@@ -46,113 +46,166 @@
 
                 <div class="input-box" id="qaConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Parámetros del Validador QA</header>
-                    <div class="form-group"><label>Tipo de Robot</label><select id="qaRobotType" class="form-control" onchange="toggleQaCrawlerFields()"><option value="Crawler">Crawler</option><option value="Updater">Updater</option></select></div>
-                    <div class="form-group"><label>Fabricante Esperado</label><input type="text" id="qaManufacturer" class="form-control" placeholder="Ej: Philips|Samsung"></div>
-                    <div class="form-group"><label>Base URL Esperada</label><input type="text" id="qaUrl" class="form-control" placeholder="Ej: https://www.casasbahia.com.br/"></div>
-                    <div class="form-group"><label>Base Imagen Esperada</label><input type="text" id="qaImage" class="form-control" placeholder="Ej: https://imgs.casasbahia.com.br/"></div>
+                    <div class="form-group">
+                        <label>Tipo de Robot</label>
+                        <select id="qaRobotType" class="form-control" onchange="toggleQaCrawlerFields()">
+                            <option value="Crawler">Crawler</option>
+                            <option value="Updater">Updater</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fabricante Esperado</label>
+                        <input type="text" id="qaManufacturer" class="form-control" placeholder="Ej: Philips|Samsung">
+                    </div>
+                    <div class="form-group">
+                        <label>Base URL Esperada</label>
+                        <input type="text" id="qaUrl" class="form-control" placeholder="Ej: https://www.casasbahia.com.br/">
+                    </div>
+                    <div class="form-group">
+                        <label>Base Imagen Esperada</label>
+                        <input type="text" id="qaImage" class="form-control" placeholder="Ej: https://imgs.casasbahia.com.br/">
+                    </div>
                     
                     <div class="form-group" id="qaExcludeGroup">
-                        <label style="color:var(--warn)">Palabras a Excluir (Separadas por coma)</label>
-                        <input type="text" id="qaExclude" class="form-control" placeholder="Ej: led, hue, lampara, foco">
+                        <label style="color:var(--warn)">Excluir Palabras (Busca SÓLO en Url y Name)</label>
+                        <input type="text" id="qaExclude" class="form-control" placeholder="Ej: led, hue, lampara">
                     </div>
 
-                    <div class="form-group" style="margin-top: 15px;"><label>Verificar Duplicados Internos SOLO en:</label><div id="qaDynamicDupes" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div></div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Verificar Duplicados Internos SOLO en:</label>
+                        <div id="qaDynamicDupes" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
+                    </div>
                 </div>
 
                 <div class="input-box" id="compConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Ajustes de Comparación</header>
-                    <div class="form-group"><label>Modo de Comparación</label><select id="compMode" class="form-control"><option value="strict">Crawler vs Crawler (Estricto)</option><option value="updater">Crawler vs Updater (Ignora campos ausentes en Updater)</option></select></div>
-                    <div class="form-group" style="margin-top: 15px;"><label>Comparar solo estos campos:</label><div id="compDynamicFields" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div></div>
+                    <div class="form-group">
+                        <label>Modo de Comparación</label>
+                        <select id="compMode" class="form-control">
+                            <option value="strict">Estricto</option>
+                            <option value="updater">Ignorar campos ausentes</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Comparar solo estos campos:</label>
+                        <div id="compDynamicFields" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: #8b949e; font-size: 13px;"></div>
+                    </div>
                 </div>
 
                 <div class="input-box" id="extraConfigPanel" style="display: none; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <header class="box-header" style="color: #58a6ff; margin-bottom: 15px;">Ajustes de Extracción</header>
-                    <div class="form-group"><label>Cantidad a Extraer</label>
+                    <div class="form-group">
+                        <label>Cantidad a Extraer</label>
                         <div style="display:flex; gap:15px; align-items:center;">
-                            <label class="check-label"><input type="checkbox" id="extAll" checked onchange="document.getElementById('extLimit').disabled = this.checked"> Extraer Todo</label>
-                            <input type="number" id="extLimit" class="form-control" style="width:120px;" placeholder="Ej: 300" disabled min="1">
+                            <label class="check-label">
+                                <input type="checkbox" id="extAll" checked onchange="document.getElementById('extLimit').disabled = this.checked"> Todo
+                            </label>
+                            <input type="number" id="extLimit" class="form-control" style="width:120px;" disabled min="1">
                         </div>
                     </div>
-                    <div class="form-group" style="margin-top: 20px;"><label>Incluir en UserData:</label><div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div></div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>Incluir en UserData:</label>
+                        <div id="dynamicTools" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div>
+                    </div>
                 </div>
 
                 <div class="input-box" id="apiTesterPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
                         <header class="box-header" style="color: #00ff87; margin:0;">🚀 API Tester</header>
-                        <button class="btn-chip" onclick="importCurlPrompt()">📥 Importar cURL (bash)</button>
+                        <button class="btn-chip" onclick="importCurlPrompt()">📥 Importar cURL</button>
                     </div>
-                    
-                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 15px;">
-                        <i>Nota: Si la API externa no tiene habilitado CORS, el navegador bloqueará la petición.</i>
-                    </div>
-
                     <div class="api-url-bar">
                         <select id="apiMethod" class="form-control" style="width: 120px; font-weight: bold; color: var(--accent);">
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
-                            <option value="PUT">PUT</option>
-                            <option value="DELETE">DELETE</option>
-                            <option value="PATCH">PATCH</option>
                         </select>
-                        <input type="text" id="apiUrl" class="form-control" placeholder="https://api.example.com/v1/data">
+                        <input type="text" id="apiUrl" class="form-control" placeholder="URL">
                         <button class="btn-primary" style="background: #00ff87; color:#000;" onclick="sendApiRequest()">Enviar</button>
                     </div>
-
                     <div class="api-tabs">
                         <button class="api-tab-btn active" onclick="switchApiTab('apiHeaders')">Headers</button>
-                        <button class="api-tab-btn" onclick="switchApiTab('apiBody')">Body (Raw / JSON)</button>
+                        <button class="api-tab-btn" onclick="switchApiTab('apiBody')">Body</button>
                     </div>
-
                     <div id="apiHeaders" class="api-tab-content active">
-                        <textarea id="apiHeadersInput" class="form-control" style="height: 100px; font-family: monospace;" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer TOKEN"}'></textarea>
+                        <textarea id="apiHeadersInput" class="form-control" style="height: 100px;"></textarea>
                     </div>
-
                     <div id="apiBody" class="api-tab-content">
-                        <textarea id="apiBodyInput" class="form-control" style="height: 200px; font-family: monospace;" placeholder='{ "key": "value" }'></textarea>
+                        <textarea id="apiBodyInput" class="form-control" style="height: 200px;"></textarea>
                     </div>
-
-                    <div class="api-response-area" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="color:#8b949e; font-weight:bold;">Respuesta:</span>
-                            <span id="apiStatus" style="font-family:monospace; font-size:13px; font-weight:bold; color:var(--text);">Esperando petición...</span>
-                        </div>
-                        <textarea id="apiResponseOutput" class="form-control" style="height: 300px; background: #010409; color: #7ee787;" readonly placeholder="El resultado de la API aparecerá aquí..."></textarea>
+                    <div class="api-response-area" style="margin-top: 20px;">
+                        <span id="apiStatus">Esperando petición...</span>
+                        <textarea id="apiResponseOutput" class="form-control" style="height: 300px; margin-top:10px;" readonly></textarea>
                     </div>
                 </div>
 
                 <div class="input-box" id="aiTrainPanel" style="display: none; grid-column: 1 / -1; background: #0d1117; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
-                    <header class="box-header" style="color: #bf87ff; margin-bottom: 15px;">🧠 Creador de Dataset para IA</header>
-                    
+                    <header class="box-header" style="color: #bf87ff; margin-bottom: 15px;">🧠 Documentación y Entrenamiento IA</header>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="form-group"><label>URL de Búsqueda (StartUrl)</label><input type="text" id="aiUrl" class="form-control" placeholder="Ej: [https://www.edion.com/item_list.html](https://www.edion.com/item_list.html)?..."></div>
-                        <div class="form-group"><label>Motivo de los cambios (Texto Crudo)</label><textarea id="aiRawReason" class="form-control" style="height: 40px; resize:vertical;" placeholder="Ej: Cambié a puppeteer porque había un antibot..."></textarea></div>
-                        <div class="form-group"><label>Código Antiguo</label><textarea id="aiOldCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea></div>
-                        <div class="form-group"><label>Código Nuevo</label><textarea id="aiNewCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea></div>
+                        <div class="form-group">
+                            <label>URL de Búsqueda (StartUrl)</label>
+                            <input type="text" id="aiUrl" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Motivo de los cambios (Texto Crudo)</label>
+                            <textarea id="aiRawReason" class="form-control" style="height: 40px; resize:vertical;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Código Antiguo</label>
+                            <textarea id="aiOldCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Código Nuevo</label>
+                            <textarea id="aiNewCode" class="form-control" style="height: 150px; font-family: monospace;"></textarea>
+                        </div>
                     </div>
-
-                    <button class="btn-primary" style="background: #bf87ff; color: #000; margin-top: 15px;" onclick="extractAIMetadata()">🔍 Auto-Detectar Metadatos y Justificaciones</button>
-
+                    
+                    <button class="btn-primary" style="background: #bf87ff; color: #000; margin-top: 15px;" onclick="extractAIMetadata()">🔍 Generar Docs & Dataset</button>
+                    
                     <div id="aiSupervisionArea" style="display: none; margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                        <h4 style="color: var(--success); margin-top: 0;">✅ Supervisión de Datos (Edita, borra o agrega conceptos)</h4>
+                        
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label style="color: #58a6ff; font-size: 15px;">📄 Documentación Generada (Markdown)</label>
+                                <button class="btn-chip" style="background: #58a6ff; color:#000;" onclick="copyAiDocs()">📋 Copiar Docs</button>
+                            </div>
+                            <textarea id="aiGeneratedDocs" class="form-control" style="height: 250px; font-family: monospace; margin-top: 10px;" spellcheck="false"></textarea>
+                        </div>
+
+                        <h4 style="color: var(--success); margin-top: 30px; border-top: 1px dashed var(--border); padding-top:20px;">✅ Metadatos para Dataset IA (Opcional)</h4>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-                            <div class="form-group"><label>Nombre / Dominio</label><input type="text" id="aiFinalDomain" class="form-control"></div>
-                            <div class="form-group"><label>País</label><input type="text" id="aiFinalCountry" class="form-control"></div>
-                            <div class="form-group"><label>Tipo de Robot</label><input type="text" id="aiFinalType" class="form-control"></div>
-                            <div class="form-group"><label>Tecnología</label><input type="text" id="aiFinalStack" class="form-control"></div>
+                            <div class="form-group">
+                                <label>Dominio</label>
+                                <input type="text" id="aiFinalDomain" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>País</label>
+                                <input type="text" id="aiFinalCountry" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo</label>
+                                <input type="text" id="aiFinalType" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Actor</label>
+                                <input type="text" id="aiFinalStack" class="form-control">
+                            </div>
                         </div>
                         
                         <div class="form-group">
-                            <label>Conceptos Clave y Justificaciones de la IA:</label>
+                            <label>Conceptos Clave:</label>
                             <div id="aiConceptsContainer" style="margin-top: 10px;"></div>
-                            <button class="btn-chip" style="margin-top:10px; border: 1px dashed #8b949e;" onclick="addConceptCard('', '')">➕ Añadir Concepto Manual</button>
+                            <button class="btn-chip" style="margin-top:10px; border: 1px dashed #8b949e;" onclick="addConceptCard('', '')">➕ Añadir Manual</button>
                         </div>
-                        <button class="btn-primary" style="background: var(--success); color:#000; width: 100%; margin-top: 15px;" onclick="saveToDatabase()">💾 Guardar en Base de Datos Oficial</button>
+                        <button class="btn-primary" style="background: var(--success); color:#000; width: 100%; margin-top: 15px;" onclick="saveToDatabase()">💾 Guardar Dataset en Mongo</button>
                     </div>
                 </div>
 
             </div>
-
-            <div class="toolbar" id="mainToolbar"><button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS</button></div>
+            
+            <div class="toolbar" id="mainToolbar">
+                <button class="btn-primary" onclick="process()">EJECUTAR ANÁLISIS</button>
+            </div>
+            
             <div class="output-panel" id="mainOutputPanel">
                 <header class="box-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>Consola de Resultados</span>
@@ -162,6 +215,6 @@
             </div>
         </main>
     </div>
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=5"></script>
 </body>
 </html>

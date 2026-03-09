@@ -2,6 +2,36 @@ let currentTab = 'codes';
 let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
 
+// ====================================================
+// ALGORITMO DE RESALTADO INTELIGENTE (SIN TACHADOS)
+// ====================================================
+function getDiffHtml(str1, str2) {
+    const s1 = String(str1 || "");
+    const s2 = String(str2 || "");
+    if (s1 === s2) return { oldH: s1, newH: s2 };
+    
+    let start = 0;
+    while(start < s1.length && start < s2.length && s1[start] === s2[start]) start++;
+    
+    let end1 = s1.length - 1;
+    let end2 = s2.length - 1;
+    while(end1 >= start && end2 >= start && s1[end1] === s2[end2]) { end1--; end2--; }
+    
+    const pre = s1.substring(0, start);
+    const post = s1.substring(end1 + 1);
+    
+    const mid1 = s1.substring(start, end1 + 1);
+    const mid2 = s2.substring(start, end2 + 1);
+    
+    const mark1 = mid1 ? `<span style="background:rgba(248,81,73,0.25); color:#ff7b72; padding:0 3px; border-radius:3px;">${mid1}</span>` : "";
+    const mark2 = mid2 ? `<span style="background:rgba(63,185,80,0.25); color:#7ee787; padding:0 3px; border-radius:3px;">${mid2}</span>` : "";
+    
+    return { oldH: pre + mark1 + post, newH: pre + mark2 + post };
+}
+
+// ====================================================
+// UTILIDADES GENERALES
+// ====================================================
 function toggleSidebar() {
     document.getElementById('mainSidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('open');
@@ -9,15 +39,22 @@ function toggleSidebar() {
 
 function copyOutput() {
     const outputElement = document.getElementById('output');
-    const preBlock = outputElement.querySelector('pre');
-    const textToCopy = preBlock ? preBlock.innerText : outputElement.innerText;
+    const textToCopy = outputElement.innerText;
     navigator.clipboard.writeText(textToCopy).then(() => {
         const btn = document.getElementById('btnCopy');
         const originalText = btn.innerHTML;
         btn.innerHTML = '¡Copiado!';
         btn.style.background = 'var(--success)';
-        setTimeout(() => { btn.innerHTML = originalText; btn.style.background = 'var(--accent)'; }, 2000);
+        setTimeout(() => { 
+            btn.innerHTML = originalText; 
+            btn.style.background = 'var(--accent)'; 
+        }, 2000);
     });
+}
+
+function copyAiDocs() {
+    const text = document.getElementById('aiGeneratedDocs').value;
+    navigator.clipboard.writeText(text).then(() => alert("¡Documentación Markdown Copiada!"));
 }
 
 function setTab(tab) {
@@ -34,47 +71,58 @@ function setTab(tab) {
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
-    const boxA = document.getElementById('boxA'); 
-    const boxB = document.getElementById('boxB');
-    const qaPanel = document.getElementById('qaConfigPanel'); 
-    const compPanel = document.getElementById('compConfigPanel');
-    const extraPanel = document.getElementById('extraConfigPanel'); 
-    const apiPanel = document.getElementById('apiTesterPanel');
-    const aiPanel = document.getElementById('aiTrainPanel');
-    const mainToolbar = document.getElementById('mainToolbar'); 
-    const mainOutput = document.getElementById('mainOutputPanel');
-    const labelA = document.getElementById('labelA'); 
-    const labelB = document.getElementById('labelB');
-
-    boxA.style.display = 'flex'; boxB.style.display = 'flex';
-    qaPanel.style.display = 'none'; compPanel.style.display = 'none'; extraPanel.style.display = 'none';
-    apiPanel.style.display = 'none'; aiPanel.style.display = 'none';
-    mainToolbar.style.display = 'flex'; mainOutput.style.display = 'flex';
+    // Ocultar todos los paneles primero
+    const panels = ['boxA', 'boxB', 'qaConfigPanel', 'compConfigPanel', 'extraConfigPanel', 'apiTesterPanel', 'aiTrainPanel'];
+    panels.forEach(id => document.getElementById(id).style.display = 'none');
+    
+    // Restaurar vistas por defecto
+    document.getElementById('mainToolbar').style.display = 'flex'; 
+    document.getElementById('mainOutputPanel').style.display = 'flex';
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
+    // Mostrar paneles según la pestaña
     if (tab === 'codes') { 
-        labelA.innerText = "Input A (JS Antiguo)"; labelB.innerText = "Input B (JS Nuevo)"; 
+        document.getElementById('boxA').style.display = 'flex'; 
+        document.getElementById('boxB').style.display = 'flex'; 
+        document.getElementById('labelA').innerText = "JS Antiguo"; 
+        document.getElementById('labelB').innerText = "JS Nuevo"; 
     } 
-    else if (tab === 'results_comp') {
-        labelA.innerText = "Input A (Crawler / Anteriores)"; labelB.innerText = "Input B (Updater / Nuevos)";
-        compPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px';
+    else if (tab === 'results_comp') { 
+        document.getElementById('boxA').style.display = 'flex'; 
+        document.getElementById('boxB').style.display = 'flex'; 
+        document.getElementById('compConfigPanel').style.display = 'flex'; 
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr 300px'; 
+        document.getElementById('labelA').innerText = "A (Crawler/Viejos)"; 
+        document.getElementById('labelB').innerText = "B (Updater/Nuevos)"; 
     } 
     else if (tab === 'dupes') { 
-        labelA.innerText = "JSON a buscar duplicados"; boxB.style.display = 'none'; document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; 
+        document.getElementById('boxA').style.display = 'flex'; 
+        document.getElementById('labelA').innerText = "JSON Buscar Duplicados"; 
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1fr'; 
     } 
-    else if (tab === 'qa') {
-        labelA.innerText = "Productos a Validar"; boxB.style.display = 'none'; qaPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
-        toggleQaCrawlerFields();
+    else if (tab === 'qa') { 
+        document.getElementById('boxA').style.display = 'flex'; 
+        document.getElementById('qaConfigPanel').style.display = 'flex'; 
+        document.getElementById('labelA').innerText = "Productos a Validar QA"; 
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr'; 
+        toggleQaCrawlerFields(); 
     } 
-    else if (tab === 'extra') {
-        labelA.innerText = "JSON para Extraer URLs"; boxB.style.display = 'none'; extraPanel.style.display = 'flex'; document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr';
+    else if (tab === 'extra') { 
+        document.getElementById('boxA').style.display = 'flex'; 
+        document.getElementById('extraConfigPanel').style.display = 'flex'; 
+        document.getElementById('labelA').innerText = "JSON Extraer URLs"; 
+        document.getElementById('inputContainer').style.gridTemplateColumns = '1.5fr 1fr'; 
     }
     else if (tab === 'api') { 
-        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; apiPanel.style.display = 'block'; 
+        document.getElementById('apiTesterPanel').style.display = 'block'; 
+        document.getElementById('mainToolbar').style.display = 'none'; 
+        document.getElementById('mainOutputPanel').style.display = 'none'; 
     }
     else if (tab === 'ai_train') { 
-        boxA.style.display = 'none'; boxB.style.display = 'none'; mainToolbar.style.display = 'none'; mainOutput.style.display = 'none'; aiPanel.style.display = 'block'; 
+        document.getElementById('aiTrainPanel').style.display = 'block'; 
+        document.getElementById('mainToolbar').style.display = 'none'; 
+        document.getElementById('mainOutputPanel').style.display = 'none'; 
     }
     
     autoDetectFields();
@@ -85,7 +133,8 @@ function autoDetectFields() {
     try {
         const rawA = document.getElementById('jsonA').value.trim();
         if(!rawA) return;
-        let data; try { data = JSON.parse(rawA); } catch(e) { return; } 
+        let data; 
+        try { data = JSON.parse(rawA); } catch(e) { return; } 
         
         const arr = Array.isArray(data) ? data : [data];
         let item = arr.find(i => i.Handled !== true && i.handled !== true) || arr[0];
@@ -104,13 +153,16 @@ function autoDetectFields() {
             `).join('');
         }
         if (currentTab === 'extra') {
-            const tools = document.getElementById('dynamicTools');
+            const tools = document.getElementById('dynamicTools'); 
             tools.innerHTML = '';
             keys.forEach(k => {
-                const btn = document.createElement('button');
-                btn.innerText = k;
+                const btn = document.createElement('button'); 
+                btn.innerText = k; 
                 btn.className = `btn-chip ${extractionFields.has(k) ? 'active' : ''}`;
-                btn.onclick = () => { btn.classList.toggle('active'); extractionFields.has(k) ? extractionFields.delete(k) : extractionFields.add(k); };
+                btn.onclick = () => { 
+                    btn.classList.toggle('active'); 
+                    extractionFields.has(k) ? extractionFields.delete(k) : extractionFields.add(k); 
+                };
                 tools.appendChild(btn);
             });
         }
@@ -119,17 +171,23 @@ function autoDetectFields() {
 
 function process() {
     const out = document.getElementById('output');
-    out.innerHTML = "Procesando...";
+    out.innerHTML = "Procesando..."; 
     document.getElementById('btnCopy').style.display = 'none';
-
+    
     const rawA = document.getElementById('jsonA').value.trim();
     const rawB = document.getElementById('jsonB').value.trim();
 
-    if (!rawA) { out.innerHTML = `<span class="err" style="color:var(--err)">[ERROR] El Input A está vacío.</span>`; return; }
+    if (!rawA) { 
+        out.innerHTML = `<span style="color:var(--err)">[ERROR] El Input A está vacío.</span>`; 
+        return; 
+    }
 
     if (currentTab === 'codes') {
-        try { compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB)); } 
-        catch(e) { compareCodesText(rawA, rawB); }
+        try { 
+            compareCodesJSON(JSON.parse(rawA), JSON.parse(rawB)); 
+        } catch(e) { 
+            compareCodesText(rawA, rawB); 
+        }
         document.getElementById('btnCopy').style.display = 'block';
         return;
     }
@@ -143,18 +201,19 @@ function process() {
             case 'extra': runExtraction(dataA); break;
         }
         document.getElementById('btnCopy').style.display = 'block';
-    } catch(e) {
-        out.innerHTML = `<span class="err" style="color:var(--err)">[ERROR] Formato JSON inválido. (${e.message})</span>`;
+    } catch(e) { 
+        out.innerHTML = `<span style="color:var(--err)">[ERROR] Formato JSON inválido.</span>`; 
     }
 }
 
 // ====================================================
-// COMPARADORES DE CÓDIGOS
+// COMPARAR CÓDIGOS (CON TARJETAS Y RESALTADO EXACTO)
 // ====================================================
 function compareCodesJSON(a, b) {
-    let html = '<ul style="list-style:none; padding:0; margin:0;">';
+    let htmlDetails = ''; 
+    let diffCount = 0;
+    
     function deepCompare(obj1, obj2, path = "") {
-        let diffHtml = "";
         const keys1 = obj1 ? Object.keys(obj1) : [];
         const keys2 = obj2 ? Object.keys(obj2) : [];
         const allKeys = new Set([...keys1, ...keys2]);
@@ -168,42 +227,68 @@ function compareCodesJSON(a, b) {
             if (JSON.stringify(v1) === JSON.stringify(v2)) return;
 
             if (typeof v1 === 'object' && v1 !== null && typeof v2 === 'object' && v2 !== null) {
-                diffHtml += deepCompare(v1, v2, currentPath);
-            } else if (v1 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--success); white-space:pre-wrap;">[+] NUEVO:\n${JSON.stringify(v2, null, 2)}</div></li>`;
-            } else if (v2 === undefined) {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); white-space:pre-wrap;">[-] ELIMINADO:\n${JSON.stringify(v1, null, 2)}</div></li>`;
+                deepCompare(v1, v2, currentPath);
             } else {
-                diffHtml += `<li class="diff-item"><b style="color:var(--accent)">${currentPath}:</b> <br><div style="color:var(--err); white-space:pre-wrap;">${JSON.stringify(v1, null, 2)}</div> ➡ <div style="color:var(--success); font-weight:bold; white-space:pre-wrap;">${JSON.stringify(v2, null, 2)}</div></li>`;
+                diffCount++;
+                let content = '';
+                if (v1 === undefined) {
+                    content = `<span style="color:var(--success)">[+] NUEVO: ${JSON.stringify(v2)}</span>`;
+                } else if (v2 === undefined) {
+                    content = `<span style="color:var(--err)">[-] ELIMINADO: ${JSON.stringify(v1)}</span>`;
+                } else {
+                    const diffs = getDiffHtml(JSON.stringify(v1), JSON.stringify(v2));
+                    content = `<span style="color:var(--err)">${diffs.oldH}</span> ➡ <span style="color:var(--success)">${diffs.newH}</span>`;
+                }
+                
+                htmlDetails += `
+                <div class="report-card warn">
+                    <div class="report-card-header">
+                        <strong style="color:var(--text); font-size:14px;">Clave JSON: <span style="color:var(--accent)">${currentPath}</span></strong>
+                    </div>
+                    <div style="margin:5px 0; font-family:monospace; font-size:13px; word-break:break-all;">${content}</div>
+                </div>`;
             }
         });
-        return diffHtml;
     }
-    const differences = deepCompare(a, b);
-    document.getElementById('output').innerHTML = differences ? html + differences + '</ul>' : '<h3 style="color:var(--success)">Configuraciones idénticas.</h3>';
+    
+    deepCompare(a, b);
+    document.getElementById('output').innerHTML = diffCount > 0 ? htmlDetails : '<h3 style="color:var(--success)">✅ El JSON es idéntico.</h3>';
 }
 
 function compareCodesText(rawA, rawB) {
-    let html = '<ul style="list-style:none; padding:0; margin:0;">';
-    const linesA = rawA.split('\n'); const linesB = rawB.split('\n');
+    let htmlDetails = '';
+    const linesA = rawA.split('\n'); 
+    const linesB = rawB.split('\n');
     const max = Math.max(linesA.length, linesB.length);
-    let diffs = 0;
+    let diffCount = 0;
 
     for (let i = 0; i < max; i++) {
         const lA = linesA[i] !== undefined ? linesA[i].replace(/\r/g, '') : null;
         const lB = linesB[i] !== undefined ? linesB[i].replace(/\r/g, '') : null;
 
         if (lA !== lB) {
-            diffs++;
-            html += `<li class="diff-item" style="font-family:monospace; font-size:12px;">
-                <b style="color:var(--warn)">Línea ${i + 1}:</b> <br>
-                ${lA !== null ? `<div style="color:var(--err); white-space:pre-wrap; word-break:break-all;">[-] ${lA || '(Línea vacía)'}</div>` : ''}
-                ${lB !== null ? `<div style="color:var(--success); white-space:pre-wrap; word-break:break-all;">[+] ${lB || '(Línea vacía)'}</div>` : ''}
-            </li>`;
+            diffCount++;
+            let content = '';
+            if (lA === null) {
+                content = `<div style="color:var(--success)">[+] ${lB}</div>`;
+            } else if (lB === null) {
+                content = `<div style="color:var(--err)">[-] ${lA}</div>`;
+            } else {
+                const diffs = getDiffHtml(lA, lB);
+                content = `<div style="color:var(--err); margin-bottom:4px;">${diffs.oldH}</div><div style="color:var(--success)">${diffs.newH}</div>`;
+            }
+
+            htmlDetails += `
+            <div class="report-card warn">
+                <div class="report-card-header" style="padding-bottom:4px; margin-bottom:4px; border-bottom:none;">
+                    <strong style="color:var(--accent); font-size:12px;">Línea ${i + 1}</strong>
+                </div>
+                <div style="font-family:monospace; font-size:13px; word-break:break-all;">${content}</div>
+            </div>`;
         }
     }
-    const summary = `<div class="summary-json">INFO  Análisis de Código JS detectado.\nINFO  Se encontraron ${diffs} líneas modificadas.</div>`;
-    document.getElementById('output').innerHTML = diffs > 0 ? summary + html + '</ul>' : '<h3 style="color:var(--success)">El código es exactamente idéntico.</h3>';
+    const topHtml = `<h4 class="section-title">🔍 Se encontraron ${diffCount} líneas modificadas</h4>`;
+    document.getElementById('output').innerHTML = diffCount > 0 ? topHtml + htmlDetails : '<h3 style="color:var(--success)">✅ El código es exactamente idéntico.</h3>';
 }
 
 // ====================================================
@@ -215,18 +300,20 @@ function compareResults(listA, listB) {
     const compMode = document.getElementById('compMode').value;
     const checkedFields = Array.from(document.querySelectorAll('#compDynamicFields input:checked')).map(cb => cb.value);
 
-    let passesObj = {}; let failsObj = {};
+    let passesObj = {}; 
+    let failsObj = {};
     checkedFields.forEach(k => { passesObj[k] = 0; failsObj[k] = 0; });
 
     let htmlDetails = '';
     const mapB_byID = new Map();
     
-    arrB.forEach(item => {
+    arrB.forEach(item => { 
         if(item.Handled === true || item.handled === true) return; 
-        if(item.ProductId) mapB_byID.set(String(item.ProductId).trim(), item);
+        if(item.ProductId) mapB_byID.set(String(item.ProductId).trim(), item); 
     });
 
-    let handledCount = 0; let totalErrors = 0;
+    let handledCount = 0; 
+    let totalErrors = 0;
     
     arrA.forEach((itemA, idx) => {
         if (itemA.Handled === true || itemA.handled === true) { handledCount++; return; } 
@@ -237,7 +324,7 @@ function compareResults(listA, listB) {
         let itemB = mapB_byID.get(rawId);
 
         if (!itemB) {
-            itemErrors.push(`❌ [FALTANTE] No encontrado en la base de comparación.`);
+            itemErrors.push(`[FALTANTE] No encontrado en la base de comparación.`);
             checkedFields.forEach(k => failsObj[k]++);
         } else {
             checkedFields.forEach(key => {
@@ -248,8 +335,11 @@ function compareResults(listA, listB) {
 
                 if (sA !== sB) {
                     failsObj[key]++;
-                    itemErrors.push(`↳ <b style="color:var(--accent)">[${key}]</b> <span style="color:var(--err); text-decoration:line-through;">${sA}</span> ➡ <span style="color:var(--success)">${sB}</span>`);
-                } else passesObj[key]++;
+                    const diffs = getDiffHtml(sA, sB);
+                    itemErrors.push(`[${key}] <span style="color:var(--err);">${diffs.oldH}</span> ➡ <span style="color:var(--success);">${diffs.newH}</span>`);
+                } else {
+                    passesObj[key]++;
+                }
             });
         }
 
@@ -262,7 +352,7 @@ function compareResults(listA, listB) {
                     <span class="badge badge-err">${itemErrors.length} Diferencias</span>
                 </div>
                 <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6; list-style-type: none;">
-                    ${itemErrors.map(e => `<li>${e}</li>`).join('')}
+                    ${itemErrors.map(e => `<li>▪ ${e}</li>`).join('')}
                 </ul>
             </div>`;
         }
@@ -270,89 +360,42 @@ function compareResults(listA, listB) {
 
     if (compMode === 'updater') Object.keys(failsObj).forEach(k => { if (failsObj[k] === 0 && passesObj[k] === 0) { delete failsObj[k]; delete passesObj[k]; } });
 
-    // CÁLCULO DE PRODUCTOS PERFECTOS
     const validItemsCount = arrA.length - handledCount;
     const perfectProducts = validItemsCount - totalErrors;
 
-    // CREACIÓN DE TABLA BONITA (Reemplazo del JSON)
     let compTableRows = '';
     Object.keys(passesObj).forEach(key => {
         let p = passesObj[key]; let f = failsObj[key];
-        compTableRows += `<tr>
-            <td><b style="color:var(--accent)">${key}</b></td>
-            <td class="${p > 0 ? 't-pass' : 't-zero'}">${p}</td>
-            <td class="${f > 0 ? 't-fail' : 't-zero'}">${f}</td>
-        </tr>`;
+        compTableRows += `<tr><td><b style="color:var(--accent)">${key}</b></td><td class="${p > 0 ? 't-pass' : 't-zero'}">${p}</td><td class="${f > 0 ? 't-fail' : 't-zero'}">${f}</td></tr>`;
     });
 
     const detailedTableHtml = `
     <div class="summary-table-container">
-        <h4 class="section-title">📊 Resumen Analítico por Campo</h4>
+        <h4 class="section-title">📊 Resumen por Campo</h4>
         <table class="summary-table">
-            <thead><tr><th>Campo Analizado</th><th>✅ Coinciden (Pasan)</th><th>❌ Diferencias (Fallan)</th></tr></thead>
+            <thead><tr><th>Campo Analizado</th><th>✅ Coinciden</th><th>❌ Fallan</th></tr></thead>
             <tbody>${compTableRows}</tbody>
         </table>
     </div>`;
-
+    
     const topHtml = `
     <div class="stats-grid">
         <div class="stat-box"><h3>${arrA.length}</h3><span>Total Input A</span></div>
-        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
         <div class="stat-box" style="border-color:var(--success)"><h3>${perfectProducts}</h3><span style="color:var(--success)">Productos Perfectos</span></div>
-        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
+        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Con Fallos</span></div>
     </div>`;
-
-    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `
-        <div style="text-align:center; padding: 40px;">
-            <h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3>
-            <p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p>
-        </div>`);
+    
+    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `<div style="text-align:center; padding: 40px;"><h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3><p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p></div>`);
 }
 
 // ====================================================
-// BUSCAR DUPLICADOS
+// VALIDADOR QA (FILTRO EXCLUDE MEJORADO)
 // ====================================================
-function findDuplicates(data) {
-    const arr = Array.isArray(data) ? data : [data];
-    const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
-    let html = ''; let hasDupes = false;
-
-    arr.forEach((i, idx) => {
-        if (i.Handled === true || i.handled === true) return;
-        let itemErrors = [];
-        const displayId = i.ProductId || `Posición_${idx}`;
-
-        ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
-            if (i[f]) {
-                const valStr = String(i[f]).trim();
-                if (seen[f].has(valStr)) itemErrors.push(`<li><b style="color:var(--accent)">[${f}]</b> <span style="color:#c9d1d9;">${valStr}</span></li>`);
-                seen[f].add(valStr);
-            }
-        });
-
-        if (itemErrors.length > 0) {
-            hasDupes = true;
-            html += `
-            <div class="report-card err">
-                <div class="report-card-header">
-                    <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
-                    <span class="badge badge-err">REPETIDO</span>
-                </div>
-                <ul style="margin:5px 0; padding-left:20px; font-family:monospace; color:#8b949e; font-size:13px; list-style-type: square;">${itemErrors.join('')}</ul>
-            </div>`;
-        }
-    });
-    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>El JSON está limpio, no hay duplicados.</h3>";
+function toggleQaCrawlerFields() { 
+    document.getElementById('qaExcludeGroup').style.display = document.getElementById('qaRobotType').value === 'Crawler' ? 'block' : 'none'; 
 }
 
-function toggleQaCrawlerFields() {
-    const isCrawler = document.getElementById('qaRobotType').value === 'Crawler';
-    document.getElementById('qaExcludeGroup').style.display = isCrawler ? 'block' : 'none';
-}
-
-// ====================================================
-// VALIDADOR QA
-// ====================================================
 function runDynamicQA(data) {
     const arr = Array.isArray(data) ? data : [data];
     let htmlDetails = '';
@@ -363,9 +406,7 @@ function runDynamicQA(data) {
     
     const rawExclude = document.getElementById('qaExclude').value.trim();
     const excludeWords = rawExclude ? rawExclude.split(',').map(w => w.trim().toLowerCase()).filter(w => w) : [];
-
-    const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked'));
-    const fieldsToDupCheck = dupCheckboxes.map(cb => cb.value);
+    const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked')).map(cb => cb.value);
 
     let handledCount = 0; let validItems = [];
     arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
@@ -373,7 +414,7 @@ function runDynamicQA(data) {
     let stats = { Fields: {}, Codes: { CTINCode:0, EANCode:0, UPCCode:0, GTINCode:0, A2CCode:0, ASINCode:0, OTHERCode:0 }, Other: {} };
     if(validItems.length > 0) Object.keys(validItems[0]).forEach(k => { if(k !== 'Codes' && k !== 'Other') stats.Fields[k] = { Name: k, Pass: 0, Fail: 0, Warnings: 0, Excluidos: 0, Duplicates: 0 }; });
 
-    let seenForDupes = {}; fieldsToDupCheck.forEach(f => seenForDupes[f] = new Set());
+    let seenForDupes = {}; dupCheckboxes.forEach(f => seenForDupes[f] = new Set());
     let totalErrors = 0;
 
     validItems.forEach((item, idx) => {
@@ -388,7 +429,7 @@ function runDynamicQA(data) {
 
             let fieldFailed = false; let fieldWarn = false; let fieldExcluded = false;
 
-            if (expRobot === 'Crawler' && excludeWords.length > 0 && typeof val === 'string') {
+            if (expRobot === 'Crawler' && excludeWords.length > 0 && typeof val === 'string' && (key === 'ProductUrl' || key === 'ProductName')) {
                 const lowerVal = val.toLowerCase();
                 const foundWord = excludeWords.find(w => lowerVal.includes(w));
                 if (foundWord) {
@@ -398,14 +439,17 @@ function runDynamicQA(data) {
             }
 
             if (key === 'Codes') {
-                let totalC = 0;
+                let totalC = 0; 
                 for (let c in val) { if (val[c] && val[c] !== 0 && val[c] !== "0") { totalC++; if(stats.Codes[c] !== undefined) stats.Codes[c]++; else stats.Codes.OTHERCode++; } }
                 if (expRobot === 'Crawler' && totalC === 0) { itemErrors.push(`[Codes] Crawler sin códigos.`); itemHasCriticalError = true; }
             } 
-            else if (key === 'Other') { for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; } 
+            else if (key === 'Other') { 
+                for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; 
+            } 
             else if (NUMBER_FIELDS.includes(key)) { 
                 if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; itemHasCriticalError = true; } 
-            } else { 
+            } 
+            else { 
                 if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; itemHasCriticalError = true; } 
             }
 
@@ -415,18 +459,19 @@ function runDynamicQA(data) {
             if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Crawler] No debe tener Ratings.`); fieldWarn = true; }
             if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Updater] Faltan campos actualizables.`); fieldWarn = true; }
 
-            if (fieldsToDupCheck.includes(key) && val) {
+            if (dupCheckboxes.includes(key) && val) {
                 const valStr = String(val).trim();
-                if (seenForDupes[key].has(valStr)) {
-                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`);
-                    stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true;
-                } else seenForDupes[key].add(valStr);
+                if (seenForDupes[key].has(valStr)) { 
+                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`); 
+                    stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true; 
+                } 
+                else seenForDupes[key].add(valStr);
             }
 
             if (stats.Fields[key]) {
-                if (fieldExcluded) stats.Fields[key].Excluidos++;
-                else if (fieldFailed) stats.Fields[key].Fail++;
-                else if (fieldWarn) stats.Fields[key].Warnings++;
+                if (fieldExcluded) stats.Fields[key].Excluidos++; 
+                else if (fieldFailed) stats.Fields[key].Fail++; 
+                else if (fieldWarn) stats.Fields[key].Warnings++; 
                 else stats.Fields[key].Pass++;
             }
         }
@@ -438,36 +483,22 @@ function runDynamicQA(data) {
             <div class="report-card ${cardClass}">
                 <div class="report-card-header">
                     <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${id}</span></strong>
-                    <span class="badge ${badgeClass}">${itemErrors.length} Observaciones</span>
+                    <span class="badge ${badgeClass}">${itemErrors.length} Fallos</span>
                 </div>
                 <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:var(--err); font-size:13px; line-height: 1.6; list-style-type: none;">
-                    ${itemErrors.map(e => `<li>${e}</li>`).join('')}
+                    ${itemErrors.map(e => `<li>▪ ${e}</li>`).join('')}
                 </ul>
             </div>`;
         }
     });
 
-    // CÁLCULO DE PRODUCTOS PERFECTOS
-    const validItemsCount = arr.length - handledCount;
-    const perfectProducts = validItemsCount - totalErrors;
-
-    // CREACIÓN DE TABLA BONITA QA (Reemplazo del JSON)
+    const perfectProducts = validItems.length - totalErrors;
     let qaTableRows = '';
     Object.values(stats.Fields).forEach(f => {
-        qaTableRows += `<tr>
-            <td><b style="color:var(--accent)">${f.Name}</b></td>
-            <td class="${f.Pass > 0 ? 't-pass' : 't-zero'}">${f.Pass}</td>
-            <td class="${f.Fail > 0 ? 't-fail' : 't-zero'}">${f.Fail}</td>
-            <td class="${f.Warnings > 0 ? 't-warn' : 't-zero'}">${f.Warnings}</td>
-            <td class="${f.Duplicates > 0 ? 't-fail' : 't-zero'}">${f.Duplicates}</td>
-            <td class="${f.Excluidos > 0 ? 't-warn' : 't-zero'}">${f.Excluidos}</td>
-        </tr>`;
+        qaTableRows += `<tr><td><b style="color:var(--accent)">${f.Name}</b></td><td class="${f.Pass > 0 ? 't-pass' : 't-zero'}">${f.Pass}</td><td class="${f.Fail > 0 ? 't-fail' : 't-zero'}">${f.Fail}</td><td class="${f.Warnings > 0 ? 't-warn' : 't-zero'}">${f.Warnings}</td><td class="${f.Duplicates > 0 ? 't-fail' : 't-zero'}">${f.Duplicates}</td><td class="${f.Excluidos > 0 ? 't-warn' : 't-zero'}">${f.Excluidos}</td></tr>`;
     });
 
-    let codesRows = Object.keys(stats.Codes).map(k => {
-        let val = stats.Codes[k];
-        return `<span class="code-badge">${k}: <b class="${val>0?'t-pass':'t-zero'}">${val}</b></span>`;
-    }).join('');
+    let codesRows = Object.keys(stats.Codes).map(k => `<span class="code-badge">${k}: <b class="${stats.Codes[k]>0?'t-pass':'t-zero'}">${stats.Codes[k]}</b></span>`).join('');
 
     const detailedTableHtml = `
     <div class="summary-table-container">
@@ -476,23 +507,55 @@ function runDynamicQA(data) {
             <thead><tr><th>Campo</th><th>✅ Aprobados</th><th>❌ Fallos</th><th>⚠️ Alertas</th><th>📋 Dups</th><th>🚫 Excluidos</th></tr></thead>
             <tbody>${qaTableRows}</tbody>
         </table>
-        <h4 class="section-title" style="margin-top:20px;">🏷️ Resumen de Códigos</h4>
+        <h4 class="section-title" style="margin-top:20px;">🏷️ Resumen Códigos</h4>
         <div>${codesRows}</div>
     </div>`;
-
+    
     const topHtml = `
     <div class="stats-grid">
         <div class="stat-box"><h3>${arr.length}</h3><span>Total Json</span></div>
-        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled (Ignorados)</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
         <div class="stat-box" style="border-color:var(--success)"><h3>${perfectProducts}</h3><span style="color:var(--success)">Productos Perfectos</span></div>
-        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Productos con Fallos</span></div>
+        <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Con Fallos</span></div>
     </div>`;
 
-    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `
-        <div style="text-align:center; padding: 40px;">
-            <h3 style="color:var(--success); margin:0;">Validación QA Exitosa</h3>
-            <p style="color:#8b949e;">No se encontraron errores ni advertencias en los datos.</p>
-        </div>`);
+    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `<div style="text-align:center; padding: 40px;"><h3 style="color:var(--success); margin:0;">Validación Exitosa</h3><p style="color:#8b949e;">Cero errores encontrados.</p></div>`);
+}
+
+// ====================================================
+// BUSCAR DUPLICADOS
+// ====================================================
+function findDuplicates(data) {
+    const arr = Array.isArray(data) ? data : [data];
+    const seen = { ProductId: new Set(), ProductUrl: new Set(), ProductName: new Set() };
+    let html = ''; let hasDupes = false;
+
+    arr.forEach((i, idx) => {
+        if (i.Handled === true || i.handled === true) return;
+        let itemErrors = []; 
+        const displayId = i.ProductId || `POS_${idx}`;
+        
+        ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
+            if (i[f]) { 
+                const valStr = String(i[f]).trim(); 
+                if (seen[f].has(valStr)) itemErrors.push(`<li>▪ <b style="color:var(--accent)">[${f}]</b> REPETIDO: <span style="color:#c9d1d9;">${valStr}</span></li>`); 
+                seen[f].add(valStr); 
+            }
+        });
+        
+        if (itemErrors.length > 0) {
+            hasDupes = true;
+            html += `
+            <div class="report-card err">
+                <div class="report-card-header">
+                    <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
+                    <span class="badge badge-err">REPETIDO</span>
+                </div>
+                <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:#8b949e; font-size:13px; list-style-type: none;">${itemErrors.join('')}</ul>
+            </div>`;
+        }
+    });
+    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>El JSON está limpio.</h3>";
 }
 
 // ====================================================
@@ -500,44 +563,35 @@ function runDynamicQA(data) {
 // ====================================================
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
-    let handledCount = 0;
-    let seenUrls = new Set();
+    let handledCount = 0; 
+    let seenUrls = new Set(); 
     let validItems = [];
-
+    
     arr.forEach(i => {
-        if (i.Handled === true || i.handled === true) { 
-            handledCount++; 
-            return; 
-        }
+        if (i.Handled === true || i.handled === true) { handledCount++; return; }
         const url = i.ProductUrl || i.Url || i.url;
-        if (url) {
-            const cleanUrl = String(url).trim();
-            if (!seenUrls.has(cleanUrl)) {
-                seenUrls.add(cleanUrl);
-                validItems.push(i);
-            }
-        } else {
-            validItems.push(i);
-        }
+        if (url) { 
+            const cleanUrl = String(url).trim(); 
+            if (!seenUrls.has(cleanUrl)) { seenUrls.add(cleanUrl); validItems.push(i); } 
+        } 
+        else validItems.push(i);
     });
 
     const totalSinRepetidos = validItems.length;
-
-    for (let i = validItems.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [validItems[i], validItems[j]] = [validItems[j], validItems[i]];
+    
+    for (let i = validItems.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1)); 
+        [validItems[i], validItems[j]] = [validItems[j], validItems[i]]; 
     }
-
-    const selectAll = document.getElementById('extAll').checked;
+    
     const limitInput = parseInt(document.getElementById('extLimit').value);
-    const limit = selectAll || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
+    const limit = document.getElementById('extAll').checked || isNaN(limitInput) || limitInput < 1 ? validItems.length : limitInput;
     const finalItems = validItems.slice(0, limit);
 
     const result = finalItems.map(i => {
-        let uData = {};
+        let uData = {}; 
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
-        const finalUrl = i.ProductUrl || i.Url || i.url || "N/A";
-        return { url: finalUrl, userData: uData, method: "GET" };
+        return { url: i.ProductUrl || i.Url || i.url || "N/A", userData: uData, method: "GET" };
     });
 
     const reportHtml = `
@@ -545,21 +599,19 @@ function runExtraction(data) {
         <div class="stat-box"><h3>${arr.length}</h3><span>Total Original</span></div>
         <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
         <div class="stat-box" style="border-color:var(--accent)"><h3>${arr.length - handledCount - totalSinRepetidos}</h3><span style="color:var(--accent)">Duplicados Borrados</span></div>
-        <div class="stat-box" style="border-color:var(--success)"><h3>${finalItems.length}</h3><span style="color:var(--success)">Extraídos (Aleatorios)</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${finalItems.length}</h3><span style="color:var(--success)">Extraídos</span></div>
     </div>`;
-
-    const outputJSON = { "startUrls": result };
-    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json" style="margin-top:0;">${JSON.stringify(outputJSON, null, 4)}</pre>`;
+    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json" style="margin-top:0;">${JSON.stringify({"startUrls": result}, null, 4)}</pre>`;
 }
 
 // ====================================================
 // API TESTER LOGIC
 // ====================================================
-function switchApiTab(tabId) {
-    document.querySelectorAll('.api-tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.api-tab-content').forEach(content => content.classList.remove('active'));
-    event.target.classList.add('active');
-    document.getElementById(tabId).classList.add('active');
+function switchApiTab(tabId) { 
+    document.querySelectorAll('.api-tab-btn').forEach(btn => btn.classList.remove('active')); 
+    document.querySelectorAll('.api-tab-content').forEach(content => content.classList.remove('active')); 
+    event.target.classList.add('active'); 
+    document.getElementById(tabId).classList.add('active'); 
 }
 
 function importCurlPrompt() {
@@ -629,30 +681,19 @@ async function sendApiRequest() {
     }
 }
 
-function clearAll() {
-    document.querySelectorAll('textarea').forEach(t => t.value = '');
-    document.getElementById('output').innerHTML = 'Consola limpia...';
-    document.getElementById('btnCopy').style.display = 'none';
+function clearAll() { 
+    document.querySelectorAll('textarea').forEach(t => t.value = ''); 
+    document.getElementById('output').innerHTML = 'Consola limpia...'; 
+    document.getElementById('btnCopy').style.display = 'none'; 
 }
 
 // ====================================================
-// IA Y MONGODB CON MANEJO DE ERRORES REAL
+// IA Y MONGODB (CON MARKDOWN GENERATOR)
 // ====================================================
-// ====================================================
-// IA Y MONGODB (TARJETAS DINÁMICAS Y JUSTIFICACIÓN)
-// ====================================================
-
-// Función para crear una tarjeta de concepto en el HTML
 function addConceptCard(concepto, justificacion) {
     const container = document.getElementById('aiConceptsContainer');
     const id = 'concept_' + Date.now() + Math.random().toString(36).substr(2, 9);
-    const html = `
-    <div class="concept-card" id="${id}">
-        <button class="concept-card-delete" onclick="document.getElementById('${id}').remove()">X Eliminar</button>
-        <input type="text" class="concept-title" value="${concepto}" placeholder="Ej: Paginación">
-        <textarea class="concept-just" placeholder="Escribe por qué se dedujo esto...">${justificacion}</textarea>
-    </div>`;
-    container.insertAdjacentHTML('beforeend', html);
+    container.insertAdjacentHTML('beforeend', `<div class="concept-card" id="${id}"><button class="concept-card-delete" onclick="document.getElementById('${id}').remove()">X Eliminar</button><input type="text" class="concept-title" value="${concepto}"><textarea class="concept-just">${justificacion}</textarea></div>`);
 }
 
 async function extractAIMetadata() {
@@ -660,114 +701,55 @@ async function extractAIMetadata() {
     const rawReason = document.getElementById('aiRawReason').value.trim();
     const code = document.getElementById('aiNewCode').value.trim() || document.getElementById('aiOldCode').value.trim();
 
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = "⏳ La IA está leyendo el código y razonando...";
-    btn.disabled = true;
+    const btn = event.target; const originalText = btn.innerHTML;
+    btn.innerHTML = "⏳ La IA está leyendo y documentando..."; btn.disabled = true;
 
     try {
-        const response = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: url, reason: rawReason, code: code })
-        });
-
+        const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, reason: rawReason, code }) });
         const textData = await response.text(); 
-        
-        if (!response.ok) {
-            let errorMsg = "Error del servidor de Render.";
-            try { errorMsg = JSON.parse(textData).error || errorMsg; } catch(e) { errorMsg = textData; }
-            throw new Error(errorMsg);
-        }
+        if (!response.ok) throw new Error(textData);
         
         const aiData = JSON.parse(textData);
 
-        // Llenar inputs básicos
         document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
         document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
         document.getElementById('aiFinalStack').value = aiData.actor || "Desconocido";
         
-        // Llenar tarjetas de conceptos
-        const container = document.getElementById('aiConceptsContainer');
-        container.innerHTML = ''; // Limpiar anteriores
-        
+        document.getElementById('aiGeneratedDocs').value = aiData.documentacion_md || "No se pudo generar la documentación.";
+
+        const container = document.getElementById('aiConceptsContainer'); container.innerHTML = '';
         const conceptosArray = aiData.conceptos_ia || [];
-        if (conceptosArray.length === 0) {
-            addConceptCard("Ninguno detectado", "La IA no encontró información suficiente.");
-        } else {
-            conceptosArray.forEach(c => addConceptCard(c.concepto, c.justificacion));
-        }
+        if (conceptosArray.length === 0) addConceptCard("Ninguno", "No hay datos");
+        else conceptosArray.forEach(c => addConceptCard(c.concepto, c.justificacion));
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
-    } catch (e) {
-        alert("Fallo en la IA: \n" + e.message);
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
+    } catch (e) { alert("Fallo IA: " + e.message); } finally { btn.innerHTML = originalText; btn.disabled = false; }
 }
 
 async function saveToDatabase() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = "⏳ Guardando en MongoDB...";
-    btn.disabled = true;
+    const btn = event.target; const originalText = btn.innerHTML;
+    btn.innerHTML = "⏳ Guardando..."; btn.disabled = true;
 
-    // Recolectar datos de las tarjetas de conceptos dinámicas
-    const conceptNodes = document.querySelectorAll('.concept-card');
     const finalConcepts = [];
-    conceptNodes.forEach(node => {
+    document.querySelectorAll('.concept-card').forEach(node => {
         const title = node.querySelector('.concept-title').value.trim();
         const just = node.querySelector('.concept-just').value.trim();
         if (title) finalConcepts.push({ concepto: title, justificacion: just });
     });
 
     const payload = {
-        contexto_web: {
-            start_url: document.getElementById('aiUrl').value.trim(),
-            dominio: document.getElementById('aiFinalDomain').value.trim(),
-            pais: document.getElementById('aiFinalCountry').value.trim()
-        },
-        arquitectura: {
-            tipo_robot: document.getElementById('aiFinalType').value.trim(),
-            actor: document.getElementById('aiFinalStack').value.trim()
-        },
-        justificacion: {
-            texto_crudo: document.getElementById('aiRawReason').value.trim(),
-            conceptos_ia: finalConcepts, // Array estructurado
-            supervisado_por_humano: true
-        },
-        codigo: {
-            codigo_antiguo: document.getElementById('aiOldCode').value.trim(),
-            codigo_nuevo: document.getElementById('aiNewCode').value.trim()
-        }
+        contexto_web: { start_url: document.getElementById('aiUrl').value.trim(), dominio: document.getElementById('aiFinalDomain').value.trim(), pais: document.getElementById('aiFinalCountry').value.trim() },
+        arquitectura: { tipo_robot: document.getElementById('aiFinalType').value.trim(), actor: document.getElementById('aiFinalStack').value.trim() },
+        justificacion: { texto_crudo: document.getElementById('aiRawReason').value.trim(), conceptos_ia: finalConcepts, supervisado_por_humano: true },
+        documentacion: document.getElementById('aiGeneratedDocs').value.trim()
     };
 
     try {
-        const response = await fetch('/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const textData = await response.text();
-
-        if (response.ok) {
-            btn.innerHTML = "✅ ¡Guardado Exitosamente en la Nube!";
-            btn.style.background = "#2ea043";
-            setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000);
-        } else {
-            let errorMsg = "Error en Base de Datos";
-            try { errorMsg = JSON.parse(textData).error; } catch(e) { errorMsg = textData; }
-            throw new Error(errorMsg);
-        }
-    } catch (e) {
-        alert("Error de Mongo: " + e.message);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
+        const response = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (response.ok) { btn.innerHTML = "✅ ¡Guardado en Mongo!"; btn.style.background = "#2ea043"; setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000); } 
+        else throw new Error("Error Servidor");
+    } catch (e) { alert("Error DB: " + e.message); btn.innerHTML = originalText; btn.disabled = false; }
 }
-
 
 setTab('codes');
