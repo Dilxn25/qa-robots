@@ -1,7 +1,54 @@
 let currentTab = 'codes';
 let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
+// ====================================================
+// SISTEMA DE NOTIFICACIONES PUSH (TOASTS)
+// ====================================================
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
 
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const textSpan = document.createElement('span');
+    textSpan.innerText = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.innerHTML = '✖';
+    closeBtn.onclick = () => removeToast(toast);
+
+    toast.appendChild(textSpan);
+    toast.appendChild(closeBtn);
+    container.appendChild(toast);
+
+    let timeLeft = 10000; // 10 segundos
+    let intervalId;
+
+    const startTimer = () => {
+        intervalId = setInterval(() => {
+            timeLeft -= 100;
+            if (timeLeft <= 0) {
+                clearInterval(intervalId);
+                removeToast(toast);
+            }
+        }, 100);
+    };
+
+    const stopTimer = () => clearInterval(intervalId);
+
+    // Pausar si el mouse está encima para poder copiar el texto
+    toast.addEventListener('mouseenter', stopTimer);
+    toast.addEventListener('mouseleave', startTimer);
+
+    startTimer();
+}
+
+function removeToast(toast) {
+    toast.classList.add('fadeOut');
+    setTimeout(() => toast.remove(), 400); // Esperar animación CSS
+}
 // ====================================================
 // ALGORITMO DE RESALTADO INTELIGENTE (SIN TACHADOS)
 // ====================================================
@@ -54,7 +101,7 @@ function copyOutput() {
 
 function copyAiDocs() {
     const text = document.getElementById('aiGeneratedDocs').value;
-    navigator.clipboard.writeText(text).then(() => alert("¡Documentación Markdown Copiada!"));
+    navigator.clipboard.writeText(text).then(() => showToast("¡Documentación Markdown Copiada!"));
 }
 
 function setTab(tab) {
@@ -642,7 +689,7 @@ function importCurlPrompt() {
             document.getElementById('apiBodyInput').value = dataMatch[1];
             if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; 
         }
-    } catch(e) { alert("Error procesando cURL: " + e.message); }
+    } catch(e) { showToast("Error procesando cURL: " + e.message); }
 }
 
 async function sendApiRequest() {
@@ -653,10 +700,10 @@ async function sendApiRequest() {
     const responseOut = document.getElementById('apiResponseOutput');
     const statusOut = document.getElementById('apiStatus');
 
-    if (!url) { alert("Ingresa una URL válida"); return; }
+    if (!url) { showToast("Ingresa una URL válida"); return; }
 
     let headers = {};
-    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } catch(e) { alert("Formato de Headers inválido. Debe ser JSON."); return; }
+    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } catch(e) { showToast("Formato de Headers inválido. Debe ser JSON."); return; }
 
     const options = { method, headers };
     if (method !== 'GET' && method !== 'HEAD' && rawBody) options.body = rawBody;
@@ -736,7 +783,7 @@ async function extractAIMetadata() {
         else conceptosArray.forEach(c => addConceptCard(c.concepto, c.justificacion));
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
-    } catch (e) { alert("Fallo IA: " + e.message); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+    } catch (e) { showToast("Fallo IA: " + e.message); } finally { btn.innerHTML = originalText; btn.disabled = false; }
 }
 
 async function saveToDatabase() {
@@ -766,7 +813,7 @@ async function saveToDatabase() {
         const response = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (response.ok) { btn.innerHTML = "✅ ¡Guardado en Mongo!"; btn.style.background = "#2ea043"; setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000); } 
         else throw new Error("Error Servidor");
-    } catch (e) { alert("Error DB: " + e.message); btn.innerHTML = originalText; btn.disabled = false; }
+    } catch (e) { showToast("Error DB: " + e.message); btn.innerHTML = originalText; btn.disabled = false; }
 }
 
 setTab('codes');
