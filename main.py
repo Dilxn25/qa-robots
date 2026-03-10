@@ -97,11 +97,10 @@ IMPORTANTE: Escapa correctamente los saltos de línea (\\n) y comillas (\\") den
 """
     
     try:
-        response = model.generate_content(
-            prompt, 
-            generation_config={"response_mime_type": "application/json"}
-        )
-        resultado = json.loads(response.text)
+        response = model.generate_content(prompt)
+        # Limpieza manual que es 100% compatible con tu librería actual (v0.4.1)
+        clean_text = response.text.replace('```json', '').replace('```', '').strip()
+        resultado = json.loads(clean_text)
         return jsonify(resultado)
     except ResourceExhausted:
         # Aquí capturamos específicamente el error de límite de tarifa de la API
