@@ -756,12 +756,28 @@ async function extractAIMetadata() {
     btn.innerHTML = "⏳ La IA está leyendo y documentando..."; btn.disabled = true;
 
     try {
-        // Se envían ambos códigos para entrenar el modelo de ML
-        const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, reason: rawReason, old_code: oldCode, new_code: newCode }) });
-        const textData = await response.text(); 
-        if (!response.ok) throw new Error(textData);
+        const response = await fetch('/api/analyze', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ url, reason: rawReason, old_code: oldCode, new_code: newCode }) 
+        });
         
-        const aiData = JSON.parse(textData);
+        // --- NUEVO MANEJO DE ERRORES INTELIGENTE ---
+        if (!response.ok) {
+            let errorMsg = "Error desconocido del servidor.";
+            try {
+                // Intentamos leer el JSON de error que manda Flask (ej: límite de cuota)
+                const errorJson = await response.json();
+                errorMsg = errorJson.error || errorMsg;
+            } catch(err) {
+                // Si no es un JSON, leemos el texto crudo (ej: error 502 de Render)
+                errorMsg = await response.text() || `Error HTTP: ${response.status}`;
+            }
+            throw new Error(errorMsg);
+        }
+        // -------------------------------------------
+
+        const aiData = await response.json();
 
         document.getElementById('aiFinalDomain').value = aiData.dominio || "Desconocido";
         document.getElementById('aiFinalCountry').value = aiData.pais || "Global";
@@ -783,7 +799,16 @@ async function extractAIMetadata() {
         else conceptosArray.forEach(c => addConceptCard(c.concepto, c.justificacion));
 
         document.getElementById('aiSupervisionArea').style.display = 'block';
-    } catch (e) { showToast("Fallo IA: " + e.message); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        showToast("¡Análisis completado con éxito!", "success");
+
+    } catch (e) { 
+        // Ahora si falla, dirá si es Render durmiendo, JSON malo, o cuota excedida
+        let msg = e.message;
+        if (msg.includes("Failed to fetch")) msg = "Error de conexión: El servidor (Render) está apagado o tardó mucho en responder. Intenta de nuevo.";
+        showToast("Fallo IA: " + msg, "error"); 
+    } finally { 
+        btn.innerHTML = originalText; btn.disabled = false; 
+    }
 }
 
 async function saveToDatabase() {
