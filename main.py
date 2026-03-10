@@ -29,7 +29,6 @@ def index():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_with_ai():
-    # Updated to require both English and Spanish documentation
     if not GEMINI_API_KEY:
         return jsonify({"error": "Falta GEMINI_API_KEY en Render"}), 500
     
@@ -45,6 +44,9 @@ Código Antiguo: {data.get('old_code', 'N/A')}
 Código Nuevo: {data.get('new_code', 'N/A')}
 
 REGLAS ESTRICTAS DE VERSIONES Y PROXY:
+- Actor Cheerio = versión 3.0.17
+- Actor Puppeteer = versión 3.0.14
+- Formato de Proxy SÓLO debe ser: TIPO (PAÍS) [CONFIGURACIÓN]. Ejemplos correctos: 'RESIDENTIAL (JP) [AUTOMATIC]', 'DATACENTER [RECOMMENDED]', 'RESIDENTIAL [AUTOMATIC]'. ESTÁ ESTRICTAMENTE PROHIBIDO poner el JSON crudo del proxy.
 
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
 {{
@@ -89,11 +91,10 @@ IMPORTANTE: Escapa correctamente los saltos de línea (\\n) y comillas (\\") den
 """
     
     try:
-        response = model.generate_content(
-            prompt, 
-            generation_config={"response_mime_type": "application/json"}
-        )
-        resultado = json.loads(response.text)
+        # AQUI ESTA LA CORRECCIÓN: Volvemos al código robusto sin el generation_config
+        response = model.generate_content(prompt)
+        clean_text = response.text.replace('```json', '').replace('```', '').strip()
+        resultado = json.loads(clean_text)
         return jsonify(resultado)
     except ResourceExhausted:
         return jsonify({"error": "⚠️ Límite de cuota de la API alcanzado. Has excedido las solicitudes por minuto de Gemini. Espera 60 segundos e intenta de nuevo."}), 429
