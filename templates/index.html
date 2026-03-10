@@ -155,13 +155,21 @@
                     <button class="btn-primary" style="background: #bf87ff; color: #000; margin-top: 15px;" onclick="extractAIMetadata()">🔍 Generar Docs & Dataset</button>
                     
                     <div id="aiSupervisionArea" style="display: none; margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                        
-                        <div class="form-group">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="color: #58a6ff; font-size: 15px;">📄 Documentación Generada (Markdown)</label>
-                                <button class="btn-chip" style="background: #58a6ff; color:#000;" onclick="copyAiDocs()">📋 Copiar Docs</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="color: #58a6ff; font-size: 15px;">🇺🇸 Documentación (Inglés)</label>
+                                    <button class="btn-chip" style="background: #58a6ff; color:#000;" onclick="copyAiDocs('en')">📋 Copiar</button>
+                                </div>
+                                <textarea id="aiGeneratedDocsEn" class="form-control" style="height: 350px; font-family: monospace; margin-top: 10px;" spellcheck="false"></textarea>
                             </div>
-                            <textarea id="aiGeneratedDocs" class="form-control" style="height: 250px; font-family: monospace; margin-top: 10px;" spellcheck="false"></textarea>
+                            <div class="form-group">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="color: #3fb950; font-size: 15px;">🇪🇸 Documentación (Español)</label>
+                                    <button class="btn-chip" style="background: #3fb950; color:#000;" onclick="copyAiDocs('es')">📋 Copiar</button>
+                                </div>
+                                <textarea id="aiGeneratedDocsEs" class="form-control" style="height: 350px; font-family: monospace; margin-top: 10px;" spellcheck="false"></textarea>
+                            </div>
                         </div>
 
                         <h4 style="color: var(--success); margin-top: 30px; border-top: 1px dashed var(--border); padding-top:20px;">✅ Metadatos Básicos</h4>

@@ -29,6 +29,7 @@ def index():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_with_ai():
+    # Updated to require both English and Spanish documentation
     if not GEMINI_API_KEY:
         return jsonify({"error": "Falta GEMINI_API_KEY en Render"}), 500
     
@@ -36,18 +37,16 @@ def analyze_with_ai():
     
     prompt = f"""
 Eres un Ingeniero Principal de QA y Arquitecto de Datos experto en Web Scraping.
-Tu objetivo es analizar un parche de código y extraer conocimiento técnico para un dataset ML, además de generar documentación de QA MUY PUNTUAL y EXACTA en ESPAÑOL.
+Tu objetivo es extraer conocimiento técnico para un dataset ML, y generar DOS documentaciones de QA (una en INGLÉS y otra en ESPAÑOL) que sean MUY PUNTUALES y DIRECTAS.
 
 URL Objetivo: {data.get('url', 'N/A')}
 Motivo del desarrollador (Crudo): {data.get('reason', 'N/A')}
 Código Antiguo: {data.get('old_code', 'N/A')}
 Código Nuevo: {data.get('new_code', 'N/A')}
 
-REGLAS ESTRICTAS DE VERSIONES:
-- Si el actor es Cheerio, su versión es SIEMPRE 3.0.17
-- Si el actor es Puppeteer, su versión es SIEMPRE 3.0.14
+REGLAS ESTRICTAS DE VERSIONES Y PROXY:
 
-Devuelve ÚNICAMENTE un JSON válido con esta estructura:
+Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
 {{
     "dominio": "Nombre del dominio extraído",
     "pais": "País deducido o Global",
@@ -61,49 +60,42 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura:
     "conceptos_ia": [
         {{ "concepto": "Técnica avanzada", "justificacion": "Análisis en español." }}
     ],
-    "documentacion_md": "TEXTO_MARKDOWN_AQUI"
+    "documentacion_md_en": "TEXTO_MARKDOWN_EN_INGLÉS",
+    "documentacion_md_es": "TEXTO_MARKDOWN_EN_ESPAÑOL"
 }}
 
-REGLAS INNEGOCIABLES PARA 'documentacion_md' (EN ESPAÑOL, PUNTUAL, SIN VERBOSIDAD):
-1. Inicia con '**Crawler Input**' o '**Updater Input**'.
-2. Debajo, extrae literalmente del "Código Nuevo" el objeto JSON que define los startUrls (incluyendo la url y el userData completo). Ponlo dentro de un bloque ```json y asegúrate de que las URLs sean texto plano.
-3. Título '**About crawler robot**' o '**About updater robot**'.
-4. Viñeta '* **Made the following fixes**'. 
-   - SI HUBO CAMBIO DE ACTOR, documenta el cambio de actor, inputs o userData EXACTAMENTE con este formato:
+REGLAS INNEGOCIABLES PARA AMBOS MARKDOWNS ('documentacion_md_en' y 'documentacion_md_es'):
+1. Inicia con '**Crawler Input**' o '**Updater Input**'. Debajo, extrae literalmente del "Código Nuevo" el JSON de startUrls (url y userData). Ponlo dentro de ```json.
+2. Título '**About crawler robot**' o '**About updater robot**'.
+3. Viñeta '* **Made the following fixes**'. 
+   - Si hubo cambio de actor documenta así:
      Change the Actor:
      From: [Actor Antiguo]
      To: [Actor Nuevo]
-   - Para el resto de fixes, usa viñetas MUY CORTAS. Solo la acción. (Ej: 'Se añadió .trim().replace(/\\s+/g, ' ') para limpieza de nombre'). PROHIBIDO explicar el motivo aquí.
-5. Viñeta '* **Made the following improvements**'. Solo optimizaciones directas (ej: preNavigationHooks).
-6. Viñeta '* **Results and main settings**'. Usa EXACTAMENTE este formato:
-   - Si cambió el actor/versión:
-     * Changed version:
-       From: [Actor Antiguo] ([Versión Antigua según reglas])
-       To: [Actor Nuevo] ([Versión Nueva según reglas])
-   - Si no cambió:
-     * Preserved version [Actor] ([Versión según reglas])
-   - Y luego las 3 configuraciones obligatorias:
-     * [Preserved/Changed] proxy configuration [detectar proxy]
-     * [Preserved/Changed] ID of each product
-     * [Preserved/Changed] the rest of original production logic
-7. Viñeta '* **Extra notes**'. Justificaciones en español, cortas, al grano. (Ej: 'Se cambió de Cheerio a Puppeteer porque la página requiere renderizado de JavaScript').
-8. Al final, subtítulo '**Robot Testing**' y esta tabla exacta:
-
+   - Para el resto: viñetas MUY CORTAS. Solo la acción técnica directa. PROHIBIDO explicar el motivo aquí.
+4. Viñeta '* **Made the following improvements**'. Solo optimizaciones directas.
+5. Viñeta '* **Results and main settings**'. EXACTAMENTE este formato y orden:
+   * [Changed/Preserved] version [Actor] ([Versión según reglas])
+   * [Changed/Preserved] proxy configuration [Formato de proxy estricto: ej. RESIDENTIAL (JP) [AUTOMATIC]]
+   * [Changed/Preserved] ID of each product
+   * [Changed/Preserved] the rest of original production logic
+6. Viñeta '* **Extra notes**'. Aquí van las justificaciones cortas y al grano.
+7. Al final, subtítulo '**Robot Testing**' y la tabla exacta en Markdown:
 | Tested (with/between) | Last Crawler run (Apify Last Run) | Tested with Production Updater Robot in CS_QA environment | Crawler Validation (validation robot test) | Crawler-updater comparison (comparison robot test) | Extra Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Crawler results | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | |
 
-IMPORTANTE: Escapa correctamente los saltos de línea (\\n) y comillas (\\") dentro de 'documentacion_md'. No incluyas explicaciones fuera del JSON.
+IMPORTANTE: Escapa correctamente los saltos de línea (\\n) y comillas (\\") dentro de los markdowns para no quebrar el JSON.
 """
     
     try:
-        response = model.generate_content(prompt)
-        # Limpieza manual que es 100% compatible con tu librería actual (v0.4.1)
-        clean_text = response.text.replace('```json', '').replace('```', '').strip()
-        resultado = json.loads(clean_text)
+        response = model.generate_content(
+            prompt, 
+            generation_config={"response_mime_type": "application/json"}
+        )
+        resultado = json.loads(response.text)
         return jsonify(resultado)
     except ResourceExhausted:
-        # Aquí capturamos específicamente el error de límite de tarifa de la API
         return jsonify({"error": "⚠️ Límite de cuota de la API alcanzado. Has excedido las solicitudes por minuto de Gemini. Espera 60 segundos e intenta de nuevo."}), 429
     except Exception as e:
         return jsonify({"error": str(e)}), 500

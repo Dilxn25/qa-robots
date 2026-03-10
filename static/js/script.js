@@ -99,9 +99,10 @@ function copyOutput() {
     });
 }
 
-function copyAiDocs() {
-    const text = document.getElementById('aiGeneratedDocs').value;
-    navigator.clipboard.writeText(text).then(() => showToast("¡Documentación Markdown Copiada!"));
+function copyAiDocs(lang) {
+    const id = lang === 'en' ? 'aiGeneratedDocsEn' : 'aiGeneratedDocsEs';
+    const text = document.getElementById(id).value;
+    navigator.clipboard.writeText(text).then(() => showToast(`¡Documentación en ${lang === 'en' ? 'Inglés' : 'Español'} Copiada!`, "success"));
 }
 
 function setTab(tab) {
@@ -689,7 +690,7 @@ function importCurlPrompt() {
             document.getElementById('apiBodyInput').value = dataMatch[1];
             if(!methodMatch) document.getElementById('apiMethod').value = 'POST'; 
         }
-    } catch(e) { showToast("Error procesando cURL: " + e.message); }
+    } catch(e) { showToast("Error procesando cURL: " + e.message, "error"); }
 }
 
 async function sendApiRequest() {
@@ -700,11 +701,10 @@ async function sendApiRequest() {
     const responseOut = document.getElementById('apiResponseOutput');
     const statusOut = document.getElementById('apiStatus');
 
-    if (!url) { showToast("Ingresa una URL válida"); return; }
+   if (!url) { showToast("Ingresa una URL válida", "warn"); return; }
 
     let headers = {};
-    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } catch(e) { showToast("Formato de Headers inválido. Debe ser JSON."); return; }
-
+    try { if (rawHeaders) headers = JSON.parse(rawHeaders); } catch(e) { showToast("Formato de Headers inválido. Debe ser JSON.", "warn"); return; }
     const options = { method, headers };
     if (method !== 'GET' && method !== 'HEAD' && rawBody) options.body = rawBody;
 
@@ -792,8 +792,10 @@ async function extractAIMetadata() {
             document.getElementById('aiRepairPattern').value = aiData.analisis_entrenamiento.patron_reparacion || "";
         }
         
-        document.getElementById('aiGeneratedDocs').value = aiData.documentacion_md || "No se pudo generar la documentación.";
-
+        // ... (resto del código extractAIMetadata)
+        document.getElementById('aiGeneratedDocsEn').value = aiData.documentacion_md_en || "No se pudo generar la doc en inglés.";
+        document.getElementById('aiGeneratedDocsEs').value = aiData.documentacion_md_es || "No se pudo generar la doc en español.";
+        // ...
         const container = document.getElementById('aiConceptsContainer'); container.innerHTML = '';
         const conceptosArray = aiData.conceptos_ia || [];
         if (conceptosArray.length === 0) addConceptCard("Ninguno", "No hay datos");
@@ -837,14 +839,15 @@ async function saveToDatabase() {
             patron_reparacion: document.getElementById('aiRepairPattern').value.trim()
         },
         justificacion: { texto_crudo: document.getElementById('aiRawReason').value.trim(), conceptos_ia: finalConcepts, supervisado_por_humano: true },
-        documentacion: document.getElementById('aiGeneratedDocs').value.trim()
+        documentacion_en: document.getElementById('aiGeneratedDocsEn').value.trim(),
+        documentacion_es: document.getElementById('aiGeneratedDocsEs').value.trim()
     };
 
     try {
         const response = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (response.ok) { btn.innerHTML = "✅ ¡Guardado en Mongo!"; btn.style.background = "#2ea043"; setTimeout(() => { btn.innerHTML = originalText; btn.style.background = "var(--success)"; btn.disabled = false; }, 3000); } 
         else throw new Error("Error Servidor");
-    } catch (e) { showToast("Error DB: " + e.message); btn.innerHTML = originalText; btn.disabled = false; }
+    } catch (e) { showToast("Error DB: " + e.message, "error"); btn.innerHTML = originalText; btn.disabled = false; }
 }
 
 setTab('codes');
