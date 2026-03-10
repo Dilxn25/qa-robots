@@ -762,20 +762,21 @@ async function extractAIMetadata() {
             body: JSON.stringify({ url, reason: rawReason, old_code: oldCode, new_code: newCode }) 
         });
         
-        // --- NUEVO MANEJO DE ERRORES INTELIGENTE ---
+        // --- MANEJO DE ERRORES CORREGIDO (LEER SOLO UNA VEZ) ---
         if (!response.ok) {
-            let errorMsg = "Error desconocido del servidor.";
+            let errorMsg = "";
+            let rawText = "";
             try {
-                // Intentamos leer el JSON de error que manda Flask (ej: límite de cuota)
-                const errorJson = await response.json();
-                errorMsg = errorJson.error || errorMsg;
+                rawText = await response.text(); // 1. Leemos la respuesta UNA sola vez
+                const errorJson = JSON.parse(rawText); // 2. Intentamos ver si es un JSON válido
+                errorMsg = errorJson.error || rawText;
             } catch(err) {
-                // Si no es un JSON, leemos el texto crudo (ej: error 502 de Render)
-                errorMsg = await response.text() || `Error HTTP: ${response.status}`;
+                // Si falla el JSON.parse, significa que era texto/HTML crudo (Ej: Error de Render)
+                errorMsg = rawText || `Error HTTP: ${response.status} ${response.statusText}`;
             }
-            throw new Error(errorMsg);
+            throw new Error(errorMsg || `Error HTTP: ${response.status}`);
         }
-        // -------------------------------------------
+        // -------------------------------------------------------
 
         const aiData = await response.json();
 
@@ -802,9 +803,14 @@ async function extractAIMetadata() {
         showToast("¡Análisis completado con éxito!", "success");
 
     } catch (e) { 
-        // Ahora si falla, dirá si es Render durmiendo, JSON malo, o cuota excedida
-        let msg = e.message;
-        if (msg.includes("Failed to fetch")) msg = "Error de conexión: El servidor (Render) está apagado o tardó mucho en responder. Intenta de nuevo.";
+        let msg = e.message || String(e);
+        if (msg === "Error" || msg.trim() === "") {
+            msg = "El servidor no respondió correctamente (Posible error 500 o error interno de Gemini).";
+        }
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+            msg = "Error de red: El servidor de Render está apagado o la conexión se cortó. Intenta de nuevo.";
+        }
+        
         showToast("Fallo IA: " + msg, "error"); 
     } finally { 
         btn.innerHTML = originalText; btn.disabled = false; 
