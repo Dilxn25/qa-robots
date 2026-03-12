@@ -34,68 +34,97 @@ def analyze_with_ai():
     
     data = request.json
     
+    # Nuevo prompt estrictamente para generación de documentación en bloques Markdown
     prompt = f"""
-Eres un Ingeniero Principal de QA y Arquitecto de Datos experto en Web Scraping.
-Tu objetivo es extraer conocimiento técnico para un dataset ML, y generar DOS documentaciones de QA (una en INGLÉS y otra en ESPAÑOL) que sean MUY PUNTUALES y DIRECTAS.
+Eres un Ingeniero Principal de QA experto en Web Scraping (Apify, Puppeteer, Cheerio).
+Analiza los cambios entre el código antiguo y nuevo que se te proporcionan al final.
+Tu objetivo es generar EXACTAMENTE CUATRO bloques de código independientes (dos para la versión en INGLÉS y dos para la versión en ESPAÑOL) para evitar conflictos de formato al copiar y pegar.
 
-URL Objetivo: {data.get('url', 'N/A')}
-Motivo del desarrollador (Crudo): {data.get('reason', 'N/A')}
-Código Antiguo: {data.get('old_code', 'N/A')}
-Código Nuevo: {data.get('new_code', 'N/A')}
+REGLAS DE ORO (PUNTUALIDAD Y FORMATO):
+1. PROHIBIDO explicar código básico.
+2. AGRUPA los cambios técnicos.
+3. CERO REPETICIONES en 'Extra notes'.
+4. REGLA DE SALIDA: Tu única respuesta deben ser los 4 bloques de código exigidos. SIN texto fuera de los bloques.
+5. DETECCIÓN CRAWLER vs UPDATER: Revisa el bloque `startUrls`. Si `userData` tiene múltiples variables (Brand, ExcludedKeyWords, Paginated, etc.), es un **Crawler**. Si tiene muy pocas (solo Manufacturer, Id, etc.), es un **Updater**. REEMPLAZA la palabra "Crawler" por "Updater" (y "crawler" por "updater") en toda la plantilla generada si corresponde. En la tabla, si es Updater, la prueba cruzada será "Updater-crawler comparison".
+6. FORMATO DE INPUT ESTRICTO Y ANIDACIÓN: Para poder incluir la etiqueta ```json debajo del título **[Tipo] Input** SIN romper el botón de copiar de la interfaz, **DEBES ENVOLVER TUS 4 BLOQUES EXTERIORES CON CUATRO COMILLAS INVERTIDAS** (es decir, usa ````markdown para abrir el bloque y ```` para cerrarlo).
+7. RESPETA ESTRICTAMENTE LAS NEGRITAS Y VIÑETAS EXACTAS DEL FORMATO EXIGIDO.
+8. USO DE JSON INTERNO: Al usar 4 comillas para el exterior, debes usar obligatoriamente las 3 comillas clásicas (```json) para envolver el código JSON internamente en los bloques 1 y 3.
+9. CAMBIOS DE ACTOR/VERSIÓN CONDICIONALES: Las viñetas sobre "Change the Actor", "Changed version" y la justificación del cambio de bot en "Extra notes" son SOLO EJEMPLOS. **SOLO DEBES GENERARLAS** si en los códigos proporcionados realmente existe un cambio de actor o versión. Si no hay cambio, **OMITE** esas líneas por completo; no inventes que cambió de Cheerio a Puppeteer.
 
-REGLAS ESTRICTAS DE VERSIONES Y PROXY:
-- Actor Cheerio = versión 3.0.17
-- Actor Puppeteer = versión 3.0.14
-- Formato de Proxy SÓLO debe ser: TIPO (PAÍS) [CONFIGURACIÓN]. Ejemplos correctos: 'RESIDENTIAL (JP) [AUTOMATIC]', 'DATACENTER [RECOMMENDED]', 'RESIDENTIAL [AUTOMATIC]'. ESTÁ ESTRICTAMENTE PROHIBIDO poner el JSON crudo del proxy.
+REGLAS DE VERSIONES Y PROXY:
+- Cheerio = 3.0.17 | Puppeteer = 3.0.14
+- Formato de Proxy Estricto: TIPO (PAÍS) [CONFIGURACIÓN]. Ej: 'RESIDENTIAL (JP) [RECOMMENDED]'.
 
-Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
-{{
-    "dominio": "Nombre del dominio extraído",
-    "pais": "País deducido o Global",
-    "tipo_robot": "Crawler o Updater",
-    "actor": "Cheerio, Puppeteer o Metamorph",
-    "analisis_entrenamiento": {{
-        "problema_raiz": "Explicación técnica del fallo en español.",
-        "solucion_aplicada": "Explicación algorítmica de la solución en español.",
-        "patron_reparacion": "Clasificación. SÓLO: [DOM Traversal, Anti-bot Evasion, Network Interception, State Management, Data Parsing, Pagination Logic, Proxy Configuration, Unknown]"
-    }},
-    "conceptos_ia": [
-        {{ "concepto": "Técnica avanzada", "justificacion": "Análisis en español." }}
-    ],
-    "documentacion_md_en": "TEXTO_MARKDOWN_EN_INGLÉS",
-    "documentacion_md_es": "TEXTO_MARKDOWN_EN_ESPAÑOL"
-}}
+FORMATO EXIGIDO DE SALIDA (Genera los 4 bloques en este orden exacto, usando ````markdown para cada uno):
 
-REGLAS INNEGOCIABLES PARA AMBOS MARKDOWNS ('documentacion_md_en' y 'documentacion_md_es'):
-1. Inicia con '**Crawler Input**' o '**Updater Input**'. Debajo, extrae literalmente del "Código Nuevo" el JSON de startUrls (url y userData). Ponlo dentro de ```json.
-2. Título '**About crawler robot**' o '**About updater robot**'.
-3. Viñeta '* **Made the following fixes**'. 
-   - Si hubo cambio de actor documenta así:
-     Change the Actor:
-     From: [Actor Antiguo]
-     To: [Actor Nuevo]
-   - Para el resto: viñetas MUY CORTAS. Solo la acción técnica directa. PROHIBIDO explicar el motivo aquí.
-4. Viñeta '* **Made the following improvements**'. Solo optimizaciones directas.
-5. Viñeta '* **Results and main settings**'. EXACTAMENTE este formato y orden:
-   * [Changed/Preserved] version [Actor] ([Versión según reglas])
-   * [Changed/Preserved] proxy configuration [Formato de proxy estricto: ej. RESIDENTIAL (JP) [AUTOMATIC]]
-   * [Changed/Preserved] ID of each product
-   * [Changed/Preserved] the rest of original production logic
-6. Viñeta '* **Extra notes**'. Aquí van las justificaciones cortas y al grano.
-7. Al final, subtítulo '**Robot Testing**' y la tabla exacta en Markdown:
-| Tested (with/between) | Last Crawler run (Apify Last Run) | Tested with Production Updater Robot in CS_QA environment | Crawler Validation (validation robot test) | Crawler-updater comparison (comparison robot test) | Extra Notes |
+--- INGLÉS ---
+1. Genera un bloque de código (con 4 comillas) que contenga EXACTAMENTE esta estructura literal (reemplaza [Tipo] por Crawler o Updater según corresponda):
+
+**[Tipo] Input**
+```json
+[AQUÍ EL JSON LITERAL DE STARTURLS EXTRAÍDO DEL CÓDIGO NUEVO]
+```
+
+2. Genera OTRO bloque de código (con 4 comillas) ````markdown con el resto de la documentación respetando esta jerarquía exacta de negritas y viñetas:
+
+**About [tipo] robot**
+
+**Made the following fixes**
+* [SI APLICA] Change the Actor:
+  * From: [Actor Antiguo]
+  * To: [Actor Nuevo]
+* [SI APLICA] Change the Input Url:
+  * From: [Url Antiguo]
+  * To: [Url Nuevo]
+* [Acción técnica agrupada 1]
+* [Acción técnica agrupada 2]
+
+**Made the following improvements**
+* [Mejora técnica 1]
+
+**Results and main settings**
+* [SI APLICA] Changed version:
+  * From: [Actor Antiguo] ([Versión fija según reglas])
+  * To: [Actor Nuevo] ([Versión fija según reglas])
+* [SI APLICA CAMBIO DE PROXY] Changed proxy configuration:
+  * From: [Formato estricto antiguo]
+  * To: [Formato estricto nuevo]
+* [SI EL PROXY SE MANTUVO] Preserved proxy configuration: [Formato estricto]
+* Preserved ID of each product
+* Preserved the rest of original production logic
+
+**Extra notes**
+* [SI APLICA] The bot was changed to [Actor Nuevo] because the page required the execution of JavaScript code.
+* [SI APLICA] The entry URLs were changed because a more efficient one was found.. 
+* [Justificación agrupada 1]
+* [Justificación agrupada 2]
+
+**Robot Testing**
+
+| Tested (with/between) | Last [Tipo] run (Apify Last Run) | Tested with Production [Robot Opuesto] Robot in CS_QA environment | [Tipo] Validation (validation robot test) | [Tipo]-[Robot Opuesto] comparison (comparison robot test) | Extra Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Crawler results | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | [Apify Console](#) | |
+| [Tipo] results | [Apify Console]() | [Apify Console]() | [Apify Console]() | [Apify Console]() | |
 
-IMPORTANTE: Escapa correctamente los saltos de línea (\\n) y comillas (\\") dentro de los markdowns para no quebrar el JSON.
+--- ESPAÑOL ---
+3. Genera un bloque de código (con 4 comillas) ````markdown idéntico al primero (con el título **[Tipo] Input** y el bloque de ```json anidado).
+
+4. Genera OTRO bloque de código (con 4 comillas) ````markdown con la TRADUCCIÓN EXACTA de la documentación en inglés (respetando las mismas negritas, viñetas, tabla y adaptación de Crawler/Updater).
+
+CÓDIGO ANTIGUO:
+{data.get('old_code', 'N/A')}
+
+CÓDIGO NUEVO:
+{data.get('new_code', 'N/A')}
 """
     
     try:
-        # AQUI ESTA LA CORRECCIÓN: Volvemos al código robusto sin el generation_config
         response = model.generate_content(prompt)
-        clean_text = response.text.replace('```json', '').replace('```', '').strip()
-        resultado = json.loads(clean_text)
-        return jsonify(resultado)
+        
+        # Como el prompt ya no retorna JSON, sino bloques de Markdown crudo,
+        # devolvemos el texto generado directamente en lugar de intentar parsearlo.
+        # Ajusta tu frontend (script.js) si antes esperaba un objeto JSON estructurado.
+        return jsonify({"raw_markdown": response.text})
+        
     except ResourceExhausted:
         return jsonify({"error": "⚠️ Límite de cuota de la API alcanzado. Has excedido las solicitudes por minuto de Gemini. Espera 60 segundos e intenta de nuevo."}), 429
     except Exception as e:

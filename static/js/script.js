@@ -1,6 +1,43 @@
 let currentTab = 'codes';
 let extractionFields = new Set(['Brand']);
 const NUMBER_FIELDS = ['Price', 'ImageCount', 'RatingSourceValue', 'ReviewCount'];
+
+// ====================================================
+// VALIDACIONES ESTRICTAS INTERNAS (INNEGOCIABLES)
+// ====================================================
+function getStrictValidationErrors(item) {
+    let issues = [];
+
+    // 1. Forzar Números (si el campo existe y no está vacío)
+    ['ImageCount', 'Price', 'RatingSourceValue', 'RatingCount'].forEach(field => {
+        if (item.hasOwnProperty(field) && item[field] !== null && item[field] !== '') {
+            if (isNaN(parseFloat(item[field])) || !isFinite(item[field])) {
+                issues.push(`[${field}] debe ser obligatoriamente numérico. Valor: "${item[field]}"`);
+            }
+        }
+    });
+
+    // 2. Stock Estricto (Mayúsculas/minúsculas exactas y sin espacios)
+    if (item.hasOwnProperty('Stock') && item.Stock !== null && item.Stock !== '') {
+        const s = String(item.Stock); // Sin trim(), así si hay un espacio falla
+        const validStock = ['InStock', 'OutOfStock', 'true', 'false'];
+        if (!validStock.includes(s)) {
+            issues.push(`[Stock] inválido: "${s}". Solo se permite exactamente: InStock, OutOfStock, true o false.`);
+        }
+    }
+
+    // 3. Ratings jamás pueden ser 0
+    ['RatingSourceValue', 'RatingCount'].forEach(field => {
+        if (item.hasOwnProperty(field) && item[field] !== null && item[field] !== '') {
+            if (parseFloat(item[field]) === 0) {
+                issues.push(`[${field}] no puede ser 0.`);
+            }
+        }
+    });
+
+    return issues;
+}
+
 // ====================================================
 // SISTEMA DE NOTIFICACIONES PUSH (TOASTS)
 // ====================================================
@@ -38,7 +75,6 @@ function showToast(message, type = 'info') {
 
     const stopTimer = () => clearInterval(intervalId);
 
-    // Pausar si el mouse está encima para poder copiar el texto
     toast.addEventListener('mouseenter', stopTimer);
     toast.addEventListener('mouseleave', startTimer);
 
@@ -47,8 +83,9 @@ function showToast(message, type = 'info') {
 
 function removeToast(toast) {
     toast.classList.add('fadeOut');
-    setTimeout(() => toast.remove(), 400); // Esperar animación CSS
+    setTimeout(() => toast.remove(), 400);
 }
+
 // ====================================================
 // ALGORITMO DE RESALTADO INTELIGENTE (SIN TACHADOS)
 // ====================================================
@@ -119,21 +156,18 @@ function setTab(tab) {
     document.getElementById('mainSidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
 
-    // Ocultar todos los paneles primero
     const panels = ['boxA', 'boxB', 'qaConfigPanel', 'compConfigPanel', 'extraConfigPanel', 'apiTesterPanel', 'aiTrainPanel'];
     panels.forEach(id => document.getElementById(id).style.display = 'none');
     
-    // Restaurar vistas por defecto
     document.getElementById('mainToolbar').style.display = 'flex'; 
     document.getElementById('mainOutputPanel').style.display = 'flex';
     document.getElementById('inputContainer').style.gridTemplateColumns = '1fr 1fr';
     document.getElementById('btnCopy').style.display = 'none';
 
-    // Mostrar paneles según la pestaña
     if (tab === 'codes') { 
         document.getElementById('boxA').style.display = 'flex'; 
         document.getElementById('boxB').style.display = 'flex'; 
-        document.getElementById('aiTrainPanel').style.display = 'block'; // Panel IA visible aquí
+        document.getElementById('aiTrainPanel').style.display = 'block'; 
         document.getElementById('labelA').innerText = "Input A (Código Antiguo)"; 
         document.getElementById('labelB').innerText = "Input B (Código Nuevo)"; 
     } 
@@ -372,6 +406,12 @@ function compareResults(listA, listB) {
         let rawId = itemA.ProductId ? String(itemA.ProductId).trim() : null;
         let itemB = mapB_byID.get(rawId);
 
+        // --- VALIDACIONES ESTRICTAS INNEGOCIABLES ---
+        const strictErrors = getStrictValidationErrors(itemA);
+        if (strictErrors.length > 0) {
+            itemErrors.push(...strictErrors.map(e => `<span style="color:var(--err)">[FORMATO]</span> ${e}`));
+        }
+
         if (!itemB) {
             itemErrors.push(`[FALTANTE] No encontrado en la base de comparación.`);
             checkedFields.forEach(k => failsObj[k]++);
@@ -398,7 +438,7 @@ function compareResults(listA, listB) {
             <div class="report-card err">
                 <div class="report-card-header">
                     <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
-                    <span class="badge badge-err">${itemErrors.length} Diferencias</span>
+                    <span class="badge badge-err">${itemErrors.length} Diferencias/Errores</span>
                 </div>
                 <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:#8b949e; font-size:13px; line-height:1.6; list-style-type: none;">
                     ${itemErrors.map(e => `<li>▪ ${e}</li>`).join('')}
@@ -435,11 +475,11 @@ function compareResults(listA, listB) {
         <div class="stat-box" style="border-color:var(--err)"><h3>${totalErrors}</h3><span style="color:var(--err)">Con Fallos</span></div>
     </div>`;
     
-    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `<div style="text-align:center; padding: 40px;"><h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3><p style="color:#8b949e;">Todos los campos evaluados coinciden exactamente.</p></div>`);
+    document.getElementById('output').innerHTML = topHtml + detailedTableHtml + (htmlDetails || `<div style="text-align:center; padding: 40px;"><h3 style="color:var(--success); margin:0;">Comparación Perfecta</h3><p style="color:#8b949e;">Todos los campos coinciden y los formatos son correctos.</p></div>`);
 }
 
 // ====================================================
-// VALIDADOR QA (FILTRO EXCLUDE MEJORADO)
+// VALIDADOR QA (CON REGLAS INNEGOCIABLES Y EXCLUSIONES DE DUPLICADOS)
 // ====================================================
 function toggleQaCrawlerFields() { 
     document.getElementById('qaExcludeGroup').style.display = document.getElementById('qaRobotType').value === 'Crawler' ? 'block' : 'none'; 
@@ -457,6 +497,9 @@ function runDynamicQA(data) {
     const excludeWords = rawExclude ? rawExclude.split(',').map(w => w.trim().toLowerCase()).filter(w => w) : [];
     const dupCheckboxes = Array.from(document.querySelectorAll('#qaDynamicDupes input:checked')).map(cb => cb.value);
 
+    // Campos que NUNCA deben marcarse como duplicados aunque estén seleccionados
+    const IGNORE_DUPLICATES = ['Price', 'Manufacturer', 'Brand', 'Stock'];
+
     let handledCount = 0; let validItems = [];
     arr.forEach(i => { if (i.Handled === true || i.handled === true) handledCount++; else validItems.push(i); });
 
@@ -470,6 +513,13 @@ function runDynamicQA(data) {
         let itemErrors = [];
         const id = item.ProductId !== undefined ? String(item.ProductId).trim() : `POS_${idx}`;
         let itemHasCriticalError = false;
+
+        // --- VALIDACIONES ESTRICTAS INNEGOCIABLES ---
+        const strictErrors = getStrictValidationErrors(item);
+        if (strictErrors.length > 0) {
+            itemErrors.push(...strictErrors);
+            itemHasCriticalError = true;
+        }
 
         for (let key in item) {
             let val = item[key];
@@ -496,7 +546,8 @@ function runDynamicQA(data) {
                 for(let o in val) stats.Other[o] = (stats.Other[o] || 0) + 1; 
             } 
             else if (NUMBER_FIELDS.includes(key)) { 
-                if (isNaN(parseFloat(val)) || !isFinite(val)) { itemErrors.push(`[${key}] Debe ser número.`); fieldFailed = true; itemHasCriticalError = true; } 
+                // Ya validado arriba por reglas estrictas, solo actualizamos banderas para UI si es necesario
+                if (isNaN(parseFloat(val)) || !isFinite(val)) { fieldFailed = true; itemHasCriticalError = true; } 
             } 
             else { 
                 if (typeof val !== 'string' && typeof val !== 'boolean') { itemErrors.push(`[${key}] Debe ser texto.`); fieldFailed = true; itemHasCriticalError = true; } 
@@ -508,13 +559,16 @@ function runDynamicQA(data) {
             if (expRobot === 'Crawler' && (key === 'RatingSourceValue' || key === 'ReviewCount') && val) { itemErrors.push(`[Crawler] No debe tener Ratings.`); fieldWarn = true; }
             if (expRobot === 'Updater' && (item.Price === undefined && item.Stock === undefined)) { itemErrors.push(`[Updater] Faltan campos actualizables.`); fieldWarn = true; }
 
+            // Búsqueda de duplicados excluyendo explícitamente los campos solicitados
             if (dupCheckboxes.includes(key) && val) {
-                const valStr = String(val).trim();
-                if (seenForDupes[key].has(valStr)) { 
-                    itemErrors.push(`[${key}] Duplicado interno: ${valStr}`); 
-                    stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true; 
-                } 
-                else seenForDupes[key].add(valStr);
+                if (!IGNORE_DUPLICATES.includes(key)) { // ESTA ES LA REGLA PARA NO VALIDAR DUPLICADOS EN ESOS CAMPOS
+                    const valStr = String(val).trim();
+                    if (seenForDupes[key].has(valStr)) { 
+                        itemErrors.push(`[${key}] Duplicado interno: ${valStr}`); 
+                        stats.Fields[key].Duplicates++; fieldFailed = true; itemHasCriticalError = true; 
+                    } 
+                    else seenForDupes[key].add(valStr);
+                }
             }
 
             if (stats.Fields[key]) {
@@ -572,7 +626,7 @@ function runDynamicQA(data) {
 }
 
 // ====================================================
-// BUSCAR DUPLICADOS
+// BUSCAR DUPLICADOS (AQUÍ TAMBIÉN SE VALIDAN FORMATOS)
 // ====================================================
 function findDuplicates(data) {
     const arr = Array.isArray(data) ? data : [data];
@@ -584,6 +638,12 @@ function findDuplicates(data) {
         let itemErrors = []; 
         const displayId = i.ProductId || `POS_${idx}`;
         
+        // --- VALIDACIONES ESTRICTAS INNEGOCIABLES ---
+        const strictErrors = getStrictValidationErrors(i);
+        if (strictErrors.length > 0) {
+            itemErrors.push(...strictErrors.map(e => `<li>▪ <b style="color:var(--err)">[FORMATO]</b> ${e}</li>`));
+        }
+
         ['ProductId', 'ProductUrl', 'ProductName'].forEach(f => {
             if (i[f]) { 
                 const valStr = String(i[f]).trim(); 
@@ -598,17 +658,17 @@ function findDuplicates(data) {
             <div class="report-card err">
                 <div class="report-card-header">
                     <strong style="color:var(--text); font-size:14px;">ProductId: <span style="color:var(--accent)">${displayId}</span></strong>
-                    <span class="badge badge-err">REPETIDO</span>
+                    <span class="badge badge-err">ERRORES / REPETIDO</span>
                 </div>
                 <ul style="margin:5px 0; padding-left:0; font-family:monospace; color:#8b949e; font-size:13px; list-style-type: none;">${itemErrors.join('')}</ul>
             </div>`;
         }
     });
-    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>El JSON está limpio.</h3>";
+    document.getElementById('output').innerHTML = hasDupes ? html : "<h3 style='color:var(--success)'>El JSON está limpio y con formato perfecto.</h3>";
 }
 
 // ====================================================
-// EXTRACTOR STARTURLS
+// EXTRACTOR STARTURLS (LIMPIO, SIN TEXTO BASURA)
 // ====================================================
 function runExtraction(data) {
     const arr = Array.isArray(data) ? data : [data];
@@ -642,15 +702,9 @@ function runExtraction(data) {
         extractionFields.forEach(f => { if(i[f] !== undefined) uData[f] = i[f]; });
         return { url: i.ProductUrl || i.Url || i.url || "N/A", userData: uData, method: "GET" };
     });
-
-    const reportHtml = `
-    <div class="stats-grid">
-        <div class="stat-box"><h3>${arr.length}</h3><span>Total Original</span></div>
-        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
-        <div class="stat-box" style="border-color:var(--accent)"><h3>${arr.length - handledCount - totalSinRepetidos}</h3><span style="color:var(--accent)">Duplicados Borrados</span></div>
-        <div class="stat-box" style="border-color:var(--success)"><h3>${finalItems.length}</h3><span style="color:var(--success)">Extraídos</span></div>
-    </div>`;
-    document.getElementById('output').innerHTML = reportHtml + `<pre class="summary-json" style="margin-top:0;">${JSON.stringify({"startUrls": result}, null, 4)}</pre>`;
+    
+    // Se eliminaron todos los textos resumen, solo arroja el JSON exacto para copiar y pegar.
+    document.getElementById('output').innerHTML =`<pre class="summary-json" style="margin-top:0;">${JSON.stringify({"startUrls": result}, null, 4)}</pre>`;
 }
 
 // ====================================================
@@ -748,7 +802,6 @@ async function extractAIMetadata() {
     const url = document.getElementById('aiUrl').value.trim();
     const rawReason = document.getElementById('aiRawReason').value.trim();
     
-    // Extrayendo el código directamente de los inputs de comparación principal
     const oldCode = document.getElementById('jsonA').value.trim();
     const newCode = document.getElementById('jsonB').value.trim();
 
@@ -762,21 +815,18 @@ async function extractAIMetadata() {
             body: JSON.stringify({ url, reason: rawReason, old_code: oldCode, new_code: newCode }) 
         });
         
-        // --- MANEJO DE ERRORES CORREGIDO (LEER SOLO UNA VEZ) ---
         if (!response.ok) {
             let errorMsg = "";
             let rawText = "";
             try {
-                rawText = await response.text(); // 1. Leemos la respuesta UNA sola vez
-                const errorJson = JSON.parse(rawText); // 2. Intentamos ver si es un JSON válido
+                rawText = await response.text(); 
+                const errorJson = JSON.parse(rawText); 
                 errorMsg = errorJson.error || rawText;
             } catch(err) {
-                // Si falla el JSON.parse, significa que era texto/HTML crudo (Ej: Error de Render)
                 errorMsg = rawText || `Error HTTP: ${response.status} ${response.statusText}`;
             }
             throw new Error(errorMsg || `Error HTTP: ${response.status}`);
         }
-        // -------------------------------------------------------
 
         const aiData = await response.json();
 
@@ -785,17 +835,15 @@ async function extractAIMetadata() {
         document.getElementById('aiFinalType').value = aiData.tipo_robot || "Desconocido";
         document.getElementById('aiFinalStack').value = aiData.actor || "Desconocido";
         
-        // Populando campos de Machine Learning
         if (aiData.analisis_entrenamiento) {
             document.getElementById('aiRootProblem').value = aiData.analisis_entrenamiento.problema_raiz || "";
             document.getElementById('aiSolutionApplied').value = aiData.analisis_entrenamiento.solucion_aplicada || "";
             document.getElementById('aiRepairPattern').value = aiData.analisis_entrenamiento.patron_reparacion || "";
         }
         
-        // ... (resto del código extractAIMetadata)
         document.getElementById('aiGeneratedDocsEn').value = aiData.documentacion_md_en || "No se pudo generar la doc en inglés.";
         document.getElementById('aiGeneratedDocsEs').value = aiData.documentacion_md_es || "No se pudo generar la doc en español.";
-        // ...
+        
         const container = document.getElementById('aiConceptsContainer'); container.innerHTML = '';
         const conceptosArray = aiData.conceptos_ia || [];
         if (conceptosArray.length === 0) addConceptCard("Ninguno", "No hay datos");
