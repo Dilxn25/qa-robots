@@ -123,7 +123,10 @@ function toggleSidebar() {
 
 function copyOutput() {
     const outputElement = document.getElementById('output');
-    const textToCopy = outputElement.innerText;
+    const exactTarget = document.getElementById('jsonToCopy');
+    
+    const textToCopy = exactTarget ? exactTarget.innerText : outputElement.innerText;
+    
     navigator.clipboard.writeText(textToCopy).then(() => {
         const btn = document.getElementById('btnCopy');
         const originalText = btn.innerHTML;
@@ -675,13 +678,19 @@ function runExtraction(data) {
     let handledCount = 0; 
     let seenUrls = new Set(); 
     let validItems = [];
+    let duplicateCount = 0; // Agregamos contador de duplicados
     
     arr.forEach(i => {
         if (i.Handled === true || i.handled === true) { handledCount++; return; }
         const url = i.ProductUrl || i.Url || i.url;
         if (url) { 
             const cleanUrl = String(url).trim(); 
-            if (!seenUrls.has(cleanUrl)) { seenUrls.add(cleanUrl); validItems.push(i); } 
+            if (!seenUrls.has(cleanUrl)) { 
+                seenUrls.add(cleanUrl); 
+                validItems.push(i); 
+            } else {
+                duplicateCount++; // Sumamos si es duplicado
+            }
         } 
         else validItems.push(i);
     });
@@ -703,8 +712,19 @@ function runExtraction(data) {
         return { url: i.ProductUrl || i.Url || i.url || "N/A", userData: uData, method: "GET" };
     });
     
-    // Se eliminaron todos los textos resumen, solo arroja el JSON exacto para copiar y pegar.
-    document.getElementById('output').innerHTML =`<pre class="summary-json" style="margin-top:0;">${JSON.stringify({"startUrls": result}, null, 4)}</pre>`;
+    // 1. STATS VISUALES (No se copiarán)
+    const statsHtml = `
+    <div class="stats-grid" style="margin-bottom: 20px; user-select: none;">
+        <div class="stat-box"><h3>${arr.length}</h3><span>Total Original</span></div>
+        <div class="stat-box" style="border-color:var(--warn)"><h3>${handledCount}</h3><span style="color:var(--warn)">Handled Ignorados</span></div>
+        <div class="stat-box" style="border-color:var(--err)"><h3>${duplicateCount}</h3><span style="color:var(--err)">Duplicados Borrados</span></div>
+        <div class="stat-box" style="border-color:var(--success)"><h3>${result.length}</h3><span style="color:var(--success)">Extraídos</span></div>
+    </div>`;
+
+    // 2. EL JSON (A este le ponemos un ID especial "jsonToCopy")
+    const jsonHtml = `<pre id="jsonToCopy" class="summary-json" style="margin-top:0;">${JSON.stringify({"startUrls": result}, null, 4)}</pre>`;
+    
+    document.getElementById('output').innerHTML = statsHtml + jsonHtml;
 }
 
 // ====================================================
